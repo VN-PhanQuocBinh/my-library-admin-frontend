@@ -191,7 +191,7 @@ const onFormSubmit = async (event: any) => {
             <label for="acceptTerms" class="text-gray-600"
                >I agree to the
                <router-link to="/terms" class="text-green-500 underline"
-                  >terms and conditions</router-link
+                  >Terms and conditions</router-link
                ></label
             >
          </div>
