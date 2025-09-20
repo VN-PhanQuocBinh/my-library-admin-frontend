@@ -47,13 +47,13 @@ const handleRegister = async (values: RegisterType) => {
 
 const onFormSubmit = async (event: any) => {
    if (event.valid && agreeTerms.value) {
-      // await handleRegister(event.values as RegisterType)
+      await handleRegister(event.values as RegisterType)
       console.log(event.values)
 
       toast.add({
          severity: 'success',
          summary: 'Form is submitted.',
-         detail: 'This is a placeholder a ction.',
+         detail: 'This is a placeholder action.',
          life: 3000,
       })
    }
@@ -75,6 +75,7 @@ const onFormSubmit = async (event: any) => {
          :resolver
          @submit="onFormSubmit"
          class="flex flex-col gap-4 w-full sm:w-96"
+         :validateOnValueUpdate="false"
       >
          <!-- Fullname -->
          <FormField class="flex flex-col gap-1">
