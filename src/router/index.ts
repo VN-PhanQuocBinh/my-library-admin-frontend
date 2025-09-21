@@ -10,12 +10,12 @@ const routes: Array<RouteRecordRaw> = [
       component: () => import('@/pages/auth/login.vue'),
       meta: { layout: DefaultLayout },
    },
-   {
-      path: '/login',
-      name: 'login',
-      component: () => import('@/pages/auth/login.vue'),
-      meta: { layout: DefaultLayout },
-   },
+   // {
+   //    path: '/login',
+   //    name: 'login',
+   //    component: () => import('@/pages/auth/login.vue'),
+   //    meta: { layout: DefaultLayout },
+   // },
    {
       path: '/register',
       name: 'register',
@@ -27,6 +27,26 @@ const routes: Array<RouteRecordRaw> = [
       name: 'dashboard',
       component: () => import('@/pages/dashboard/dashboard.vue'),
       meta: { layout: authenticatedLayout, requireAuth: true },
+      children: [
+         {
+            path: 'book',
+            name: 'book',
+            component: () => import('@/pages/dashboard/book.vue'),
+            meta: { title: 'Book' },
+         },
+         {
+            path: 'publisher',
+            name: 'publisher',
+            component: () => import('@/pages/dashboard/publisher.vue'),
+            meta: { title: 'Publisher' },
+         },
+         {
+            path: 'borrowing-registration',
+            name: 'borrowing-registration',
+            component: () => import('@/pages/dashboard/borrowing-registration.vue'),
+            meta: { title: 'Borrowing Registration' },
+         },
+      ],
    },
    {
       path: '/:pathMatch(.*)*',

@@ -57,7 +57,7 @@ onMounted(async () => {
       viewBox="0 0 32 32"
       :width
       :height
-      :class="['w-10 h-10', props.class].join(' ')"
+      :class="props.class"
       v-html="processedSvg"
    ></svg>
 </template>

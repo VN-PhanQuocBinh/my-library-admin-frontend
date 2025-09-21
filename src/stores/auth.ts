@@ -18,10 +18,17 @@ export const useAuthStore = defineStore('auth', () => {
          const response = await login(payload)
          const { accessToken, user } = response.data
          if (accessToken && user) {
-            console.log('Login successful')
+            // Store token and user in localStorage
             localStorage.setItem('token', accessToken)
             localStorage.setItem('user', user)
-            router.push({ name: 'dashboard' })
+
+            // Update the store state
+            token.value = accessToken
+            user.value = user
+
+            // navigate to dashboard
+            await router.push('/dashboard')
+            console.log('Login successful')
          }
       } catch (error) {
          throw error
@@ -44,6 +51,8 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.removeItem('user')
       user.value = null
       token.value = null
+
+      router.push({ name: 'login' })
    }
 
    function logout() {

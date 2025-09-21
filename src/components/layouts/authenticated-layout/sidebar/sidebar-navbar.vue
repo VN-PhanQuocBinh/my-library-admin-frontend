@@ -12,19 +12,27 @@ const props = defineProps({
 
 const items = [
    {
-      title: 'item 1',
+      title: 'Book',
+      path: '/dashboard/book',
+      icon: 'book',
    },
    {
-      title: 'item 2',
+      title: 'Publisher',
+      path: '/dashboard/publisher',
+      icon: 'publisher',
    },
    {
-      title: 'item 3',
+      title: 'Borrowing registration',
+      path: '/dashboard/borrowing-registration',
+      icon: 'borrowing-registration',
    },
 ]
 </script>
 
 <template>
-   <div :class="['flex flex-col gap-6 px-4 py-6 border-b border-(--my-border-color)', props.class]">
-      <NavItem v-for="item in items" :key="item.title" :title="item.title" />
+   <div :class="`flex flex-col gap-1.5 ${props.class}`">
+      <router-link v-for="value in items" :key="value.title" :to="value.path">
+         <NavItem :title="value.title" :icon="value.icon" :active="value.path === $route.path" />
+      </router-link>
    </div>
 </template>
