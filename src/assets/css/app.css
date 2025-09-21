@@ -36,9 +36,7 @@ ul {
 }
 button {
    cursor: pointer;
-   border: none;
-   outline: none;
-   background: none;
+   appearance: none;
 }
 img {
    display: block;

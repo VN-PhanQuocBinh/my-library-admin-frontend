@@ -7,7 +7,6 @@
             {{ $route.meta.title }}
          </h1>
       </div>
-      <div class="w-full h-[0.5px] bg-(--my-text-secondary-color)"></div>
 
       <div class="flex-1 overflow-auto">
          <router-view />
