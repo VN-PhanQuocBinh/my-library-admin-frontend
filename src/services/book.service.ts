@@ -1,9 +1,20 @@
 import apiClient from './api.service'
 import { BOOK_ENDPOINTS } from '@/config/api-endpoints'
+import type { BookGenre } from '@/types/book'
 
-export const fetchBooks = async (query?: Record<string, string>) => {
+interface getBookParams {
+  page?: number
+  limit?: number
+  query?: string
+  publisher?: string
+  category?: string
+  status?: boolean
+  genre?: BookGenre
+}
+
+export const fetchBooks = async (params?: getBookParams) => {
   try {
-    const response = await apiClient.get(BOOK_ENDPOINTS.LIST, { params: query })
+    const response = await apiClient.get(BOOK_ENDPOINTS.LIST, { params })
     return response.data
   } catch (error) {
     console.error('Error fetching books:', error)

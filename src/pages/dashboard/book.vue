@@ -31,6 +31,8 @@ import type { Book } from '@/types/book'
 import { formatVND } from '@/utils/format-currency'
 
 import { BookSchema, type BookType } from '@/types/book-schema'
+import { BOOK_GENRES } from '@/types/book'
+import type { BookGenre } from '@/types/book'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 
 import { useDebounce } from '@/utils/use-debounce'
@@ -73,9 +75,7 @@ const pagination = ref({
   total: 0,
   totalPages: 0,
 })
-const [debouncedSearchQuery, setDebouncedSearchQuery] = useDebounce('', 300)
-const searchQuery = ref('')
-const searching = ref(false)
+const isLoadingData = ref(false)
 
 const open = ref<any>(null)
 const formRef = ref<any>(null)
@@ -89,16 +89,45 @@ const selectedBook = ref<{ _id: string; status: boolean }>({
   status: false,
 })
 
-// Fetch books from the API
-const loadData = async () => {
-  try {
-    const [booksResponse, publishersResponse] = await Promise.all([fetchBooks(), fetchPublishers()])
+const [debouncedSearchQuery, setDebouncedSearchQuery] = useDebounce('', 300)
+const searchQuery = ref('')
+const selectedPublisher = ref<string | null>(null)
+const selectedGenre = ref<BookGenre | null>(null)
 
+// Fetch books from the API
+
+const fetchBooksWithQuery = async () => {
+  try {
+    isLoadingData.value = true
+
+    const query = debouncedSearchQuery.value.toString().trim()
+
+    const booksResponse = await fetchBooks({ query, publisher: selectedPublisher.value || '' })
     books.value = booksResponse.data.list
     pagination.value = booksResponse.data.pagination
+  } catch (error) {
+    console.error('Error fetching books:', error)
+  } finally {
+    isLoadingData.value = false
+  }
+}
+
+watch(isLoadingData, (newLoading) => {
+  console.log('isLoadingData changed:', newLoading)
+})
+
+const loadData = async () => {
+  try {
+    isLoadingData.value = true
+    const [_, publishersResponse] = await Promise.all([fetchBooksWithQuery(), fetchPublishers()])
+
+    // books.value = booksResponse.data.list
+    // pagination.value = booksResponse.data.pagination
     publishers.value = publishersResponse.data.list
   } catch (error) {
     console.error('Error fetching books:', error)
+  } finally {
+    isLoadingData.value = false
   }
 }
 
@@ -110,20 +139,11 @@ watch(searchQuery, (newQuery) => {
   setDebouncedSearchQuery(newQuery)
 })
 
-watch(debouncedSearchQuery, async (newQuery) => {
+watch([debouncedSearchQuery, selectedPublisher, selectedGenre], async (newValues) => {
   try {
-    searching.value = true
-    console.log('Searching books with query:', newQuery)
-    const query = newQuery.toString().trim()
-
-    const booksResponse = await fetchBooks({ query })
-
-    books.value = booksResponse.data.list
-    pagination.value = booksResponse.data.pagination
+    fetchBooksWithQuery()
   } catch (error) {
-    console.error('Error searching books:', error)
-  } finally {
-    searching.value = false
+    console.error('Error isLoadingData books:', error)
   }
 })
 
@@ -203,7 +223,7 @@ const handleCreateBook = async (data: FormData) => {
       detail: 'Book created successfully',
       life: 3000,
     })
-    await loadData()
+    await fetchBooksWithQuery()
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to create book', life: 3000 })
   } finally {
@@ -216,14 +236,14 @@ const handleUpdateBook = async (bookId: string, data: FormData) => {
   try {
     isSubmitting.value = true
 
-    const response = await updateBook(bookId, data)
+    await updateBook(bookId, data)
     toast.add({
       severity: 'success',
       summary: 'Success',
       detail: 'Book updated successfully',
       life: 3000,
     })
-    await loadData()
+    await fetchBooksWithQuery()
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to update book', life: 3000 })
   } finally {
@@ -285,11 +305,14 @@ const handleToggleBookStatus = async () => {
 
     if (!bookId || status === null) throw new Error('No book ID to delete')
 
-    await updateBook(bookId, { status: !status })
+    const formData = new FormData()
+    formData.append('status', (!status).toString())
+
+    await updateBook(bookId, formData)
 
     selectedBook.value = { _id: '', status: false }
 
-    await loadData()
+    await fetchBooksWithQuery()
     toast.add({
       severity: 'success',
       summary: 'Success',
@@ -322,19 +345,23 @@ onBeforeUnmount(() => {
     :rows="pagination.limit"
     :totalRecords="pagination.total"
   >
+    <template #empty>
+      <div class="text-(--my-text-secondary-color) text-center">No books found.</div>
+    </template>
+
     <template #header>
       <div class="flex flex-row items-center justify-between gap-2.5">
         <h2 class="flex-1 text-lg font-semibold text-(--my-secondary-color)">Book List</h2>
-        <div
-          class="flex flex-row items-center gap-1 border-(--my-text-secondary-color) border rounded-md pl-2 h-[40px]!"
-        >
-          <InputText v-model="searchQuery" placeholder="Search" class="outline-none" unstyled />
-          <Button
-            :loading="searching"
-            icon="pi pi-search "
-            class="rounded-r-sm! rounded-l-none! h-full! bg-(--my-secondary-color)! border-none! hover:opacity-85!"
+
+        <IconField class="bg-white!">
+          <InputIcon class="pi pi-search sp" />
+          <InputText
+            v-model="searchQuery"
+            placeholder="Search"
+            class="focus:border-(--my-primary-color)!"
           />
-        </div>
+        </IconField>
+
         <Button
           @click="addBookVisible = true"
           icon="pi pi-plus"
@@ -342,11 +369,34 @@ onBeforeUnmount(() => {
           class="bg-(--my-primary-color)! border-none! hover:opacity-85! text-(--my-secondary-color)!"
         />
       </div>
+
+      <div class="flex flex-row items-center justify-end mt-4 gap-2.5">
+        <Select
+          size="small"
+          v-model="selectedGenre"
+          :options="BOOK_GENRES"
+          showClear
+          placeholder="Filter by Genre"
+          class="w-full md:w-56"
+        />
+        <Select
+          size="small"
+          v-model="selectedPublisher"
+          :options="publishers"
+          optionLabel="name"
+          optionValue="_id"
+          showClear
+          placeholder="Filter by Publisher"
+          class="w-full md:w-56"
+        />
+      </div>
     </template>
 
     <Column field="coverImage" header="Cover">
       <template #body="slotProps">
+        <div v-if="isLoadingData" class="skeleton h-16 w-10 rounded-xs"></div>
         <Image
+          v-if="!isLoadingData"
           :src="slotProps.data.coverImage"
           alt="Cover Image"
           width="30"
@@ -355,28 +405,53 @@ onBeforeUnmount(() => {
         />
       </template>
     </Column>
-    <Column field="name" header="Title" />
-    <Column field="author" header="Author" />
-    <Column field="genre" header="Genre" />
+
+    <Column field="name" header="Title">
+      <template #body="slotProps">
+        <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
+        <span v-else>{{ slotProps.data.name }}</span>
+      </template>
+    </Column>
+
+    <Column field="author" header="Author">
+      <template #body="slotProps">
+        <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
+        <span v-else>{{ slotProps.data.author }}</span>
+      </template>
+    </Column>
+
+    <Column field="genre" header="Genre">
+      <template #body="slotProps">
+        <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
+        <span v-else>{{ slotProps.data.genre }}</span>
+      </template>
+    </Column>
+
     <Column field="price">
       <template #header>
         <div class="text-right w-full font-semibold">Price (đ)</div>
       </template>
       <template #body="slotProps">
-        <div class="text-right">{{ formatVND(slotProps.data.price.original) }}</div>
+        <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
+        <span v-else>{{ formatVND(slotProps.data.price.original) }}</span>
       </template>
     </Column>
+
     <Column field="quantity">
       <template #header>
         <div class="text-right w-full font-semibold">Remaining</div>
       </template>
       <template #body="slotProps">
-        <div class="text-right">{{ slotProps.data.quantity }}</div>
+        <div v-if="isLoadingData" class="skeleton h-4 rounded w-20"></div>
+        <div v-else class="text-right">{{ slotProps.data.quantity }}</div>
       </template>
     </Column>
+
     <Column field="status" header="Status">
       <template #body="slotProps">
+        <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
         <Tag
+          v-if="!isLoadingData"
           :value="slotProps.data.status ? 'Available' : 'Out of stock'"
           :severity="slotProps.data.status ? 'success' : 'danger'"
           class="uppercase"
@@ -389,40 +464,39 @@ onBeforeUnmount(() => {
         <div class="text-center w-full font-semibold">Actions</div>
       </template>
       <template #body="slotProps">
-        <div class="flex flex-row items-center justify-center gap-2.5">
+        <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
+        <div v-else class="flex flex-row items-center justify-center gap-2.5">
           <Button
             icon="pi pi-ellipsis-v"
             @click="toggleOpen($event, { _id: slotProps.data._id, status: slotProps.data.status })"
             unstyled
             class="size-8 rounded-xs"
           />
-
-          <Popover ref="open" placement="top" class="min-w-[120px]">
-            <div class="flex flex-col">
-              <button
-                @click="editVisible = true"
-                class="flex flex-row items-center gap-2.5 p-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
-              >
-                <i class="pi pi-pen-to-square"></i>
-                <span>Edit</span>
-              </button>
-              <button
-                @click="handleOpenDeleteConfirm()"
-                class="flex flex-row items-center gap-2.5 p-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
-              >
-                <i :class="`pi ${slotProps.data.status ? 'pi-trash' : 'pi-check'}`"></i>
-                <span>{{
-                  slotProps.data.status ? 'Mark as Out of Stock' : 'Mark as Available'
-                }}</span>
-              </button>
-            </div>
-          </Popover>
         </div>
       </template>
     </Column>
 
     <template #footer>In total there are {{ books ? books.length : 0 }} books.</template>
   </DataTable>
+
+  <Popover ref="open" placement="top" class="min-w-[120px]">
+    <div class="flex flex-col">
+      <button
+        @click="editVisible = true"
+        class="flex flex-row items-center gap-2.5 p-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
+      >
+        <i class="pi pi-pen-to-square"></i>
+        <span>Edit</span>
+      </button>
+      <button
+        @click="handleOpenDeleteConfirm()"
+        class="flex flex-row items-center gap-2.5 p-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
+      >
+        <i :class="`pi ${selectedBook.status ? 'pi-trash' : 'pi-check'}`"></i>
+        <span>{{ selectedBook.status ? 'Mark as Out of Stock' : 'Mark as Available' }}</span>
+      </button>
+    </div>
+  </Popover>
 
   <!-- Add Book Dialog -->
   <Dialog
@@ -1004,18 +1078,7 @@ onBeforeUnmount(() => {
                 size="small"
                 class="w-full"
                 placeholder="Select a Genre"
-                :options="[
-                  'fiction',
-                  'nonFiction',
-                  'scienceFiction',
-                  'fantasy',
-                  'mystery',
-                  'biography',
-                  'history',
-                  'poetry',
-                  'self-help',
-                  'business',
-                ]"
+                :options="BOOK_GENRES"
               />
               <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
                 {{ $field.error?.message }}
@@ -1082,3 +1145,27 @@ onBeforeUnmount(() => {
     </template>
   </Dialog>
 </template>
+
+<style scoped>
+/* Custom loading overlay */
+:deep(.p-paginator-page-selected) {
+  background-color: var(--my-secondary-color) !important;
+  color: white !important;
+  /* border: 1px solid var(--my-secondary-color) !important; */
+}
+
+.skeleton {
+  background-color: #e0e0e0;
+  animation: skeleton-pulse 3s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+</style>
