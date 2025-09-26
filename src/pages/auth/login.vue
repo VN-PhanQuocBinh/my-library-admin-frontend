@@ -41,14 +41,6 @@ const handleLogin = async (values: LoginType) => {
 const onFormSubmit = async (event: any) => {
    if (event.valid) {
       await handleLogin(event.values as LoginType)
-      console.log(event.values as LoginType)
-
-      toast.add({
-         severity: 'success',
-         summary: 'Form is submitted.',
-         detail: 'This is a placeholder a ction.',
-         life: 3000,
-      })
    }
 }
 </script>
@@ -68,6 +60,7 @@ const onFormSubmit = async (event: any) => {
          :resolver
          @submit="onFormSubmit"
          class="flex flex-col gap-4 w-full sm:w-80"
+         :validateOnValueUpdate="false"
       >
          <!-- Email -->
          <FormField class="flex flex-col gap-1">
