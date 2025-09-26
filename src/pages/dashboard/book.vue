@@ -485,7 +485,11 @@ onBeforeUnmount(() => {
       </template>
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
-        <div v-else>{{ slotProps.data.publisher.name }}</div>
+        <div v-else>
+          <span>{{ slotProps.data.publisher?.name || "Unknown Publisher" }}</span>
+          <!-- <span v-if="slotProps.data.publisher">{{ slotProps.data.publisher.name }}</span>
+          <div v-else class="text-(--my-text-secondary-color) text-center">Unknown Publisher</div> -->
+        </div>
       </template>
     </Column>
 

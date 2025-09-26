@@ -15,8 +15,10 @@ import {
 } from 'primevue'
 
 import { Form, FormField } from '@primevue/forms'
-import { z } from 'zod'
+import { set, z } from 'zod'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
+
+import { useDebounce } from '@/utils/use-debounce'
 
 import {
   createPublisher,
@@ -30,7 +32,7 @@ type PublisherType = z.infer<typeof PublisherSchema>
 
 // State variables
 const resolver = zodResolver(PublisherSchema)
-const initialCreateValues = ref<PublisherType>({
+const initialCreateValues = ref<Publisher>({
   name: '',
   address: '',
 })
@@ -44,22 +46,41 @@ const isLoadingData = ref(false)
 const open = ref<any>(null)
 const isOpenEdit = ref(false)
 const isOpenDeleteConfirm = ref(false)
-const formRef = ref<any>(null)
+const formRef = ref<any>(null) // Reference to the edit form component
 const isSubmitting = ref(false)
 
 const addPublisherVisible = ref<boolean>(false)
-const selectedPublisher = ref<Publisher | null>(null)
+const selectedPublisher = ref<Publisher | undefined>(undefined)
 
 const searchQuery = ref('')
-const filteredPublishers = ref<{ _id: string; name: string; address: string }[]>([])
+const [debouncedSearchQuery, setDebouncedSearchQuery] = useDebounce('', 300)
+
+const filteredPublishers = ref<Publisher[]>([])
+const pagination = ref<{ page: number; limit: number; total: number; totalPages: number }>({
+  page: 0,
+  limit: 10,
+  totalPages: 1,
+  total: 0,
+})
 
 // Fetch publishers from the API
-const fetchPublishers = async () => {
+const fetchPublishers = async (page = 0, limit = 10) => {
   try {
     isLoadingData.value = true
-    const response = await getAllPublishers()
-    publishers.value = response.data.list
-    filteredPublishers.value = response.data.list
+    const response = await getAllPublishers({ query: debouncedSearchQuery.value, page, limit })
+    const { list, pagination: _pagination } = response.data
+
+    publishers.value = list
+    filteredPublishers.value = list
+
+    console.log('Fetched publishers:', pagination)
+
+    pagination.value = {
+      page: _pagination.page,
+      limit: _pagination.limit,
+      total: _pagination.total,
+      totalPages: _pagination.totalPages,
+    }
   } catch (error) {
     console.error('Error fetching publishers:', error)
     toast.add({
@@ -71,6 +92,13 @@ const fetchPublishers = async () => {
   } finally {
     isLoadingData.value = false
   }
+}
+
+// Handle pagination change
+const onPageChange = (event: any) => {
+  pagination.value.page = event.page
+  pagination.value.limit = event.rows
+  fetchPublishers(event.page, event.rows)
 }
 
 // Filter publishers based on search query
@@ -87,7 +115,14 @@ const filterPublishers = () => {
   }
 }
 
-watch(searchQuery, filterPublishers)
+watch(searchQuery, (newValue) => {
+  setDebouncedSearchQuery(newValue)
+})
+
+watch(debouncedSearchQuery, (newValue) => {
+  pagination.value.page = 0
+  fetchPublishers()
+})
 
 onMounted(() => {
   fetchPublishers()
@@ -136,35 +171,75 @@ const handleSubmit = async (event: any) => {
   }
 }
 
-const handleEdit = () => {
-  // TODO: Implement edit functionality
-  isOpenEdit.value = true
+const handleEdit = async (event: any) => {
+  try {
+    isOpenEdit.value = true
+    isSubmitting.value = true
 
-  toast.add({
-    severity: 'info',
-    summary: 'Info',
-    detail: 'Edit functionality coming soon',
-    life: 3000,
-  })
+    if (event.valid) {
+      const { values: formValues } = event
+
+      await updatePublisher({ _id: selectedPublisher.value?._id, ...formValues })
+      toast.add({
+        severity: 'success',
+        summary: 'Success',
+        detail: 'Publisher updated successfully',
+        life: 3000,
+      })
+      await fetchPublishers()
+    }
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Failed to update publisher',
+      life: 3000,
+    })
+  } finally {
+    isOpenEdit.value = false
+    isSubmitting.value = false
+  }
 }
 
-const handleDelete = () => {
-  isOpenDeleteConfirm.value = true
+const handleDelete = async () => {
+  try {
+    isSubmitting.value = true
 
-  // TODO: Implement delete functionality
-  toast.add({
-    severity: 'info',
-    summary: 'Info',
-    detail: 'Delete functionality coming soon',
-    life: 3000,
-  })
+    await deletePublisher(selectedPublisher.value?._id as string)
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'Publisher deleted successfully',
+      life: 3000,
+    })
+    await fetchPublishers()
+  } catch (error) {
+    console.error('Error deleting publisher:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Failed to delete publisher',
+      life: 3000,
+    })
+  } finally {
+    isOpenDeleteConfirm.value = false
+    isSubmitting.value = false
+  }
 }
 </script>
 
 <template>
   <Toast position="bottom-right" />
 
-  <DataTable :value="filteredPublishers" :paginator="true" :rows="10">
+  <DataTable
+    :value="publishers"
+    :paginator="true"
+    :rows="pagination.limit"
+    :totalRecords="pagination.total"
+    :first="pagination.page * pagination.limit"
+    :lazy="true"
+    @page="onPageChange"
+  >
     <template #empty>
       <div class="text-(--my-text-secondary-color) text-center">No publishers found.</div>
     </template>
@@ -223,7 +298,9 @@ const handleDelete = () => {
     </Column>
 
     <template #footer>
-      In total there are {{ filteredPublishers ? filteredPublishers.length : 0 }} publishers.
+      Showing {{ pagination.page * pagination.limit + 1 }} to
+      {{ Math.min((pagination.page + 1) * pagination.limit, pagination.total) }}
+      of {{ pagination.total }} publishers.
     </template>
   </DataTable>
 
@@ -231,14 +308,14 @@ const handleDelete = () => {
     <div class="flex flex-col">
       <button
         @click="isOpenEdit = true"
-        class="flex flex-row items-center gap-2.5 p-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
+        class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
       >
         <i class="pi pi-pen-to-square"></i>
         <span>Edit</span>
       </button>
       <button
         @click="isOpenDeleteConfirm = true"
-        class="flex flex-row items-center gap-2.5 p-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
+        class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
       >
         <i class="pi pi-trash"></i>
         <span>Delete</span>
@@ -361,11 +438,12 @@ const handleDelete = () => {
       <div class="flex justify-end gap-2">
         <Button type="button" label="Close" severity="secondary" @click="isOpenEdit = false" />
         <Button
-          type="button"
+          type="submit"
           label="Save"
           class="bg-(--my-secondary-color)! text-white! border-none!"
           :disabled="isSubmitting"
-          @click="handleEdit"
+          :loading="isSubmitting"
+          @click="formRef?.submit()"
         />
       </div>
     </template>
@@ -378,8 +456,12 @@ const handleDelete = () => {
     header="Confirm Delete"
     :style="{ minWidth: '30rem' }"
   >
-    <div class="text-(--my-text-secondary-color) text-center">
-      Delete functionality coming soon.
+    <div class="text-(--my-text-primary-color) text-center">
+      Are you sure you want to delete publisher
+      <span class="font-semibold text-(--my-secondary-color)">
+        "{{ selectedPublisher?.name }}"
+      </span>
+      ?
     </div>
     <template #footer>
       <div class="flex justify-end gap-2">
@@ -392,8 +474,10 @@ const handleDelete = () => {
         <Button
           type="button"
           label="Delete"
-          class="bg-(--my-secondary-color)! text-white! border-none!"
+          severity="danger"
+          class="text-white! border-none!"
           :disabled="isSubmitting"
+          :loading="isSubmitting"
           @click="handleDelete"
         />
       </div>
