@@ -24,7 +24,7 @@ import {
 import { Form, FormField } from '@primevue/forms'
 
 import { fetchBooks, createBook, updateBook } from '@/services/book.service'
-import { fetchPublishers } from '@/services/publisher.service'
+import { getAllPublishers } from '@/services/publisher.service'
 
 import type { Book } from '@/types/book'
 
@@ -51,6 +51,7 @@ const inititalCreateValues = ref<BookType>({
   publisher: '',
   // detailedImages: [],
 })
+
 const initialEditValues = ref<BookType>({
   name: '',
   description: '',
@@ -93,6 +94,7 @@ const [debouncedSearchQuery, setDebouncedSearchQuery] = useDebounce('', 300)
 const searchQuery = ref('')
 const selectedPublisher = ref<string | null>(null)
 const selectedGenre = ref<BookGenre | null>(null)
+const selectedStatus = ref<'active' | 'inactive' | null>(null)
 
 // Fetch books from the API
 
@@ -102,7 +104,25 @@ const fetchBooksWithQuery = async () => {
 
     const query = debouncedSearchQuery.value.toString().trim()
 
-    const booksResponse = await fetchBooks({ query, publisher: selectedPublisher.value || '' })
+    const queries: { [key: string]: any } = {}
+
+    if (query) {
+      queries['query'] = query
+    }
+
+    if (selectedPublisher.value) {
+      queries['publisher'] = selectedPublisher.value
+    }
+
+    if (selectedGenre.value) {
+      queries['genre'] = selectedGenre.value
+    }
+
+    if (selectedStatus.value !== null) {
+      queries['status'] = selectedStatus.value
+    }
+
+    const booksResponse = await fetchBooks(queries)
     books.value = booksResponse.data.list
     pagination.value = booksResponse.data.pagination
   } catch (error) {
@@ -119,7 +139,7 @@ watch(isLoadingData, (newLoading) => {
 const loadData = async () => {
   try {
     isLoadingData.value = true
-    const [_, publishersResponse] = await Promise.all([fetchBooksWithQuery(), fetchPublishers()])
+    const [_, publishersResponse] = await Promise.all([fetchBooksWithQuery(), getAllPublishers()])
 
     // books.value = booksResponse.data.list
     // pagination.value = booksResponse.data.pagination
@@ -139,13 +159,16 @@ watch(searchQuery, (newQuery) => {
   setDebouncedSearchQuery(newQuery)
 })
 
-watch([debouncedSearchQuery, selectedPublisher, selectedGenre], async (newValues) => {
-  try {
-    fetchBooksWithQuery()
-  } catch (error) {
-    console.error('Error isLoadingData books:', error)
-  }
-})
+watch(
+  [debouncedSearchQuery, selectedPublisher, selectedGenre, selectedStatus],
+  async (newValues) => {
+    try {
+      fetchBooksWithQuery()
+    } catch (error) {
+      console.error('Error isLoadingData books:', error)
+    }
+  },
+)
 
 watch([books, pagination], (newValues) => {
   const [newBooks, newPagination] = newValues
@@ -373,12 +396,31 @@ onBeforeUnmount(() => {
       <div class="flex flex-row items-center justify-end mt-4 gap-2.5">
         <Select
           size="small"
+          v-model="selectedStatus"
+          :options="[
+            { label: 'Active', value: true },
+            { label: 'Inactive', value: false },
+          ]"
+          optionLabel="label"
+          optionValue="value"
+          showClear
+          placeholder="Filter by Status"
+          class="w-full md:w-56"
+        />
+
+        <Select
+          size="small"
           v-model="selectedGenre"
           :options="BOOK_GENRES"
           showClear
           placeholder="Filter by Genre"
           class="w-full md:w-56"
-        />
+        >
+          <template #option="slotProps">
+            <span class="capitalize">{{ slotProps.option }}</span>
+          </template>
+        </Select>
+
         <Select
           size="small"
           v-model="selectedPublisher"
@@ -423,7 +465,7 @@ onBeforeUnmount(() => {
     <Column field="genre" header="Genre">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
-        <span v-else>{{ slotProps.data.genre }}</span>
+        <span v-else class="capitalize">{{ slotProps.data.genre }}</span>
       </template>
     </Column>
 
@@ -433,7 +475,17 @@ onBeforeUnmount(() => {
       </template>
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
-        <span v-else>{{ formatVND(slotProps.data.price.original) }}</span>
+        <div v-else class="text-right">{{ formatVND(slotProps.data.price.original) }}</div>
+      </template>
+    </Column>
+
+    <Column field="publisher" header="Publisher">
+      <template #header>
+        <div class="text-right w-full font-semibold">Publisher</div>
+      </template>
+      <template #body="slotProps">
+        <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
+        <div v-else>{{ slotProps.data.publisher.name }}</div>
       </template>
     </Column>
 
@@ -452,7 +504,7 @@ onBeforeUnmount(() => {
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
         <Tag
           v-if="!isLoadingData"
-          :value="slotProps.data.status ? 'Available' : 'Out of stock'"
+          :value="slotProps.data.status ? 'Active' : 'Inactive'"
           :severity="slotProps.data.status ? 'success' : 'danger'"
           class="uppercase"
         />
