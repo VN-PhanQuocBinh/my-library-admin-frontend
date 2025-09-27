@@ -12,6 +12,11 @@ const props = defineProps({
 
 const items = [
    {
+      title: 'User',
+      path: '/dashboard/user',
+      icon: 'user',
+   },
+   {
       title: 'Book',
       path: '/dashboard/book',
       icon: 'book',
