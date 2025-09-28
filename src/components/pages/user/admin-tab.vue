@@ -12,14 +12,18 @@ import {
   Message,
   useToast,
   Tag,
+  Card,
+  Divider,
 } from 'primevue'
+import Avatar from 'primevue/avatar'
 
 import { Form, FormField } from '@primevue/forms'
 import { z } from 'zod'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 
 import { useDebounce } from '@/utils/use-debounce'
-import { getAllAdmins, createAdmin, updateAdmin, updateAdminStatus } from '@/utils/admin.service'
+import { getAllAdmins, createAdmin, updateAdmin } from '@/services/admin.service.ts'
+import type { AdminParams, CreateAdminPayload } from '@/services/admin.service.ts'
 
 // Types
 interface Admin {
@@ -82,12 +86,14 @@ const selectedAdmin = ref<Admin | undefined>(undefined)
 const isSubmitting = ref(false)
 const formRef = ref<any>(null)
 
-const initialCreateValues = ref<Partial<AdminFormType>>({
+const initialCreateValues = ref<Partial<CreateAdminPayload>>({
   fullname: '',
   duty: 'staff',
+  dateOfBirth: new Date(),
   email: '',
   phoneNumber: '',
   address: '',
+  password: '',
 })
 
 const pagination = ref({
@@ -101,13 +107,15 @@ const pagination = ref({
 const fetchAdmins = async (page = 0, limit = 10) => {
   try {
     isLoadingData.value = true
-    const response = await getAllAdmins({
-      query: debouncedSearchQuery.value,
-      status: selectedStatus.value,
-      duty: selectedDuty.value,
-      page,
-      limit,
-    })
+
+    const queries: AdminParams = {}
+    debouncedSearchQuery.value && (queries['query'] = debouncedSearchQuery.value)
+    selectedStatus.value && (queries['status'] = selectedStatus.value || '')
+    selectedDuty.value && (queries['duty'] = selectedDuty.value || '')
+
+    const response = await getAllAdmins(queries)
+
+    console.log('Admin fetch response:', response)
 
     const { list, pagination: _pagination } = response.data
     admins.value = list
@@ -136,7 +144,7 @@ const onPageChange = (event: any) => {
   fetchAdmins(event.page, event.rows)
 }
 
-const handleCreateAdmin = async (data: AdminFormType) => {
+const handleCreateAdmin = async (data: CreateAdminPayload) => {
   try {
     isSubmitting.value = true
     await createAdmin(data)
@@ -163,7 +171,10 @@ const handleCreateAdmin = async (data: AdminFormType) => {
 const handleEditAdmin = async (data: AdminFormType) => {
   try {
     isSubmitting.value = true
-    await updateAdmin({ _id: selectedAdmin.value?._id, ...data })
+    const adminId = selectedAdmin.value?._id || ''
+    if (!adminId) throw new Error('Admin ID is missing')
+
+    await updateAdmin(adminId, data)
     toast.add({
       severity: 'success',
       summary: 'Success',
@@ -187,7 +198,7 @@ const handleEditAdmin = async (data: AdminFormType) => {
 const handleUpdateStatus = async (status: string) => {
   try {
     isSubmitting.value = true
-    await updateAdminStatus(selectedAdmin.value?._id as string, status)
+    await updateAdmin(selectedAdmin.value?._id as string, { status })
     toast.add({
       severity: 'success',
       summary: 'Success',
@@ -405,16 +416,86 @@ onMounted(() => {
     </Column>
 
     <template #expansion="slotProps">
-      <div class="p-4">
-        <h5 class="font-semibold mb-3">Additional Information</h5>
-        <div class="grid grid-cols-2 gap-4">
-          <div><strong>Phone:</strong> {{ slotProps.data.phoneNumber }}</div>
-          <div><strong>Duty:</strong> {{ slotProps.data.duty }}</div>
-          <div>
-            <strong>Created:</strong> {{ new Date(slotProps.data.createdAt).toLocaleDateString() }}
+      <div
+        class="flex flex-row p-5 gap-6"
+      >
+        <!-- Avatar -->
+        <div class="flex flex-col items-center gap-2">
+          <div
+            class="flex items-center justify-center size-20 bg-(--my-primary-color) rounded-full text-white text-4xl font-semibold"
+          >
+            {{ slotProps.data.fullname.charAt(0).toUpperCase() }}
           </div>
-          <div>
-            <strong>Updated:</strong> {{ new Date(slotProps.data.updatedAt).toLocaleDateString() }}
+          <Tag :value="slotProps.data.duty" :severity="getDutySeverity(slotProps.data.duty)" />
+          <div class="flex flex-col items-center gap-0">
+            <h4 class="font-semibold">{{ slotProps.data.fullname }}</h4>
+            <span class="text-sm text-gray-400">{{ slotProps.data.email }}</span>
+          </div>
+        </div>
+
+        <Divider layout="vertical" />
+
+        <!-- Details -->
+        <div class="flex-1 grid grid-cols-3 gap-4">
+          <!-- Gender -->
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold">Duty:</span>
+            <Tag
+              class="w-max"
+              :value="slotProps.data.duty"
+              :severity="getDutySeverity(slotProps.data.duty)"
+            />
+          </div>
+
+          <!-- Status -->
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold">Status:</span>
+            <Tag size="small" class="w-max">{{ slotProps.data.status }}</Tag>
+          </div>
+
+          <!-- Phone -->
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold">Phone:</span>
+            <div class="flex items-center gap-2">
+              <span
+                class="flex-1 rounded-[6px] bg-gray-100 text-(--my-text-primary-color) px-2 py-1"
+                >{{ slotProps.data.phoneNumber }}</span
+              >
+              <Button
+                icon="pi pi-copy"
+                size="small"
+                class="p-button-text p-button-rounded p-button-secondary"
+                :disabled="!slotProps.data.phoneNumber"
+                @click="console.log('copied to clipboard')"
+              />
+            </div>
+          </div>
+
+          <!-- Address  -->
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold">Address:</span>
+            <div class="flex items-center gap-2">
+              <span
+                class="flex-1 rounded-[6px] bg-gray-100 text-(--my-text-primary-color) px-2 py-1"
+                >{{ slotProps.data.address }}</span
+              >
+              <Button
+                icon="pi pi-copy"
+                size="small"
+                class="p-button-text p-button-rounded p-button-secondary"
+                :disabled="!slotProps.data.address"
+                @click="console.log('copied to clipboard')"
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1 text-(--my-text-primary-color)">
+            <span class="font-semibold">Created:</span>
+            <span>{{ new Date(slotProps.data.createdAt).toLocaleDateString() }}</span>
+          </div>
+          <div class="flex flex-col gap-1 text-(--my-text-primary-color)">
+            <span class="font-semibold">Updated:</span>
+            <span>{{ new Date(slotProps.data.updatedAt).toLocaleDateString() }}</span>
           </div>
         </div>
       </div>

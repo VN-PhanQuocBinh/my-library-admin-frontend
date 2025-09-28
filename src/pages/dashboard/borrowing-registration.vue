@@ -28,7 +28,7 @@ import {
   getAllBorrowingRegistrations,
   updateBorrowingStatus,
 } from '@/services/borrowing.service.ts'
-import { getAllUsers } from '@/services/user.service.ts'
+import { getAllUsers } from '@/services/user.service'
 import { fetchBooks as getAllBooks } from '@/services/book.service.ts'
 
 // Define schema for borrowing registration

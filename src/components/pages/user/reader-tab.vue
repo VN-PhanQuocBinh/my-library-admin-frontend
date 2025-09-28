@@ -19,12 +19,8 @@ import { z } from 'zod'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 
 import { useDebounce } from '@/utils/use-debounce'
-import {
-  getAllReaders,
-  createReader,
-  updateReader,
-  updateReaderStatus,
-} from '@/utils/reader.service'
+import { getAllUsers, createUser, updateUser } from '@/services/user.service'
+import type { UserParams, CreateUserPayload } from '@/services/user.service'
 
 // Types
 interface Reader {
@@ -86,7 +82,7 @@ const selectedReader = ref<Reader | undefined>(undefined)
 const isSubmitting = ref(false)
 const formRef = ref<any>(null)
 
-const initialCreateValues = ref<Partial<ReaderFormType>>({
+const initialCreateValues = ref<Partial<CreateUserPayload>>({
   firstname: '',
   lastname: '',
   gender: 'male',
@@ -104,15 +100,15 @@ const pagination = ref({
 })
 
 // Methods
-const fetchReaders = async (page = 0, limit = 10) => {
+const fetchUsers = async (page = 0, limit = 10) => {
   try {
     isLoadingData.value = true
-    const response = await getAllReaders({
-      query: debouncedSearchQuery.value,
-      status: selectedStatus.value,
-      page,
-      limit,
-    })
+
+    const queries: UserParams = {}
+    debouncedSearchQuery.value && (queries['query'] = debouncedSearchQuery.value)
+    selectedStatus.value && (queries['status'] = selectedStatus.value || '')
+
+    const response = await getAllUsers(queries)
 
     const { list, pagination: _pagination } = response.data
     readers.value = list
@@ -138,20 +134,20 @@ const fetchReaders = async (page = 0, limit = 10) => {
 const onPageChange = (event: any) => {
   pagination.value.page = event.page
   pagination.value.limit = event.rows
-  fetchReaders(event.page, event.rows)
+  fetchUsers(event.page, event.rows)
 }
 
-const handleCreateReader = async (data: ReaderFormType) => {
+const handleCreateReader = async (data: CreateUserPayload) => {
   try {
     isSubmitting.value = true
-    await createReader(data)
+    await createUser(data)
     toast.add({
       severity: 'success',
       summary: 'Success',
       detail: 'Reader created successfully',
       life: 3000,
     })
-    await fetchReaders()
+    await fetchUsers()
   } catch (error) {
     toast.add({
       severity: 'error',
@@ -168,14 +164,16 @@ const handleCreateReader = async (data: ReaderFormType) => {
 const handleEditReader = async (data: ReaderFormType) => {
   try {
     isSubmitting.value = true
-    await updateReader({ _id: selectedReader.value?._id, ...data })
+    const userId = selectedReader.value?._id || ''
+    if (!userId) throw new Error('User ID is missing')
+    await updateUser(userId, data)
     toast.add({
       severity: 'success',
       summary: 'Success',
       detail: 'Reader updated successfully',
       life: 3000,
     })
-    await fetchReaders()
+    await fetchUsers()
   } catch (error) {
     toast.add({
       severity: 'error',
@@ -192,14 +190,17 @@ const handleEditReader = async (data: ReaderFormType) => {
 const handleUpdateStatus = async (status: string) => {
   try {
     isSubmitting.value = true
-    await updateReaderStatus(selectedReader.value?._id as string, status)
+    const userId = selectedReader.value?._id || ''
+    if (!userId) throw new Error('User ID is missing')
+
+    await updateUser(userId, { status })
     toast.add({
       severity: 'success',
       summary: 'Success',
       detail: 'Reader status updated successfully',
       life: 3000,
     })
-    await fetchReaders()
+    await fetchUsers()
   } catch (error) {
     toast.add({
       severity: 'error',
@@ -271,11 +272,11 @@ watch(searchQuery, (newValue) => {
 
 watch([debouncedSearchQuery, selectedStatus], () => {
   pagination.value.page = 0
-  fetchReaders()
+  fetchUsers()
 })
 
 onMounted(() => {
-  fetchReaders()
+  fetchUsers()
 })
 </script>
 
