@@ -40,6 +40,7 @@ export const useAuthStore = defineStore('auth', () => {
    async function registerUser(payload: RegisterType) {
       try {
          const response = await register(payload)
+         router.push({ name: 'login' })
          return response.data
       } catch (error) {
          throw error
