@@ -7,18 +7,18 @@ import {
   InputIcon,
   InputText,
   Button,
-  Dropdown,
+  Select,
   Dialog,
   Message,
   useToast,
   Tag,
-  Card,
   Divider,
+  Password,
+  Popover,
 } from 'primevue'
-import Avatar from 'primevue/avatar'
 
 import { Form, FormField } from '@primevue/forms'
-import { z } from 'zod'
+import { date, z } from 'zod'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 
 import { useDebounce } from '@/utils/use-debounce'
@@ -44,6 +44,7 @@ const AdminSchema = z.object({
   email: z.string().email('Invalid email format'),
   phoneNumber: z.string().min(1, 'Phone number is required'),
   address: z.string().min(1, 'Address is required'),
+  password: z.string().min(6, 'Password must be at least 6 characters long').optional(),
 })
 
 type AdminFormType = z.infer<typeof AdminSchema>
@@ -51,6 +52,7 @@ type AdminFormType = z.infer<typeof AdminSchema>
 // State
 const toast = useToast()
 const resolver = zodResolver(AdminSchema)
+const editResolver = zodResolver(AdminSchema.omit({ email: true, password: true }))
 
 const admins = ref<Admin[]>([])
 const isLoadingData = ref(false)
@@ -62,13 +64,11 @@ const selectedDuty = ref<string | null>(null)
 const [debouncedSearchQuery, setDebouncedSearchQuery] = useDebounce('', 300)
 
 const statusOptions = [
-  { label: 'All', value: null },
   { label: 'Active', value: 'active' },
   { label: 'Inactive', value: 'inactive' },
 ]
 
 const dutyOptions = [
-  { label: 'All', value: null },
   { label: 'Staff', value: 'staff' },
   { label: 'Manager', value: 'manager' },
 ]
@@ -77,6 +77,9 @@ const dutyFormOptions = [
   { label: 'Staff', value: 'staff' },
   { label: 'Manager', value: 'manager' },
 ]
+
+// Action menu
+const openActions = ref<any>(null)
 
 // Dialog states
 const addAdminVisible = ref(false)
@@ -108,14 +111,12 @@ const fetchAdmins = async (page = 0, limit = 10) => {
   try {
     isLoadingData.value = true
 
-    const queries: AdminParams = {}
+    const queries: AdminParams = { page, limit }
     debouncedSearchQuery.value && (queries['query'] = debouncedSearchQuery.value)
     selectedStatus.value && (queries['status'] = selectedStatus.value || '')
     selectedDuty.value && (queries['duty'] = selectedDuty.value || '')
 
     const response = await getAllAdmins(queries)
-
-    console.log('Admin fetch response:', response)
 
     const { list, pagination: _pagination } = response.data
     admins.value = list
@@ -155,15 +156,15 @@ const handleCreateAdmin = async (data: CreateAdminPayload) => {
       life: 3000,
     })
     await fetchAdmins()
-  } catch (error) {
+    addAdminVisible.value = false
+  } catch (error: any) {
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: 'Failed to create admin',
+      detail: error?.response?.data?.message || 'Failed to create admin',
       life: 3000,
     })
   } finally {
-    addAdminVisible.value = false
     isSubmitting.value = false
   }
 }
@@ -214,6 +215,7 @@ const handleUpdateStatus = async (status: string) => {
       life: 3000,
     })
   } finally {
+    openActions.value?.hide()
     editStatusVisible.value = false
     isSubmitting.value = false
   }
@@ -236,6 +238,7 @@ const handleSubmit = async (event: any) => {
 const handleEditSubmit = async (event: any) => {
   if (event.valid) {
     const { values: formValues } = event
+    console.log('Edit form values:', event)
     await handleEditAdmin(formValues)
   } else {
     toast.add({
@@ -269,14 +272,14 @@ const getDutySeverity = (duty: string) => {
   }
 }
 
-const openEditAdmin = (admin: Admin) => {
+const openEditAdmin = (event: any, admin: Admin) => {
   selectedAdmin.value = { ...admin }
   editAdminVisible.value = true
 }
 
-const openEditStatus = (admin: Admin) => {
+const openEditStatus = (event: any, admin: Admin) => {
   selectedAdmin.value = admin
-  editStatusVisible.value = true
+  openActions.value?.toggle(event)
 }
 
 // Watchers
@@ -311,20 +314,31 @@ onMounted(() => {
     </template>
 
     <template #header>
-      <div class="flex flex-col gap-4">
-        <div class="flex flex-row items-center justify-between gap-2.5">
-          <h2 class="flex-1 text-lg font-semibold text-(--my-secondary-color)">Admin List</h2>
+      <div class="flex flex-row items-center justify-between w-full gap-4">
+        <div class="flex flex-row items-center gap-2.5">
+          <Select
+            v-model="selectedStatus"
+            :options="statusOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Filter by status"
+            class="w-48"
+            showClear
+          />
 
-          <Button
-            @click="addAdminVisible = true"
-            icon="pi pi-plus"
-            label="Add Admin"
-            class="bg-(--my-primary-color)! border-none! hover:opacity-85! text-(--my-secondary-color)!"
+          <Select
+            v-model="selectedDuty"
+            :options="dutyOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Filter by duty"
+            class="w-48"
+            showClear
           />
         </div>
 
-        <div class="flex flex-row items-center gap-4">
-          <IconField class="bg-white! flex-1">
+        <div class="flex flex-row items-center justify-between gap-2.5">
+          <IconField class="bg-white!">
             <InputIcon class="pi pi-search" />
             <InputText
               v-model="searchQuery"
@@ -332,23 +346,11 @@ onMounted(() => {
               class="w-full focus:border-(--my-primary-color)!"
             />
           </IconField>
-
-          <Dropdown
-            v-model="selectedStatus"
-            :options="statusOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Filter by status"
-            class="w-48"
-          />
-
-          <Dropdown
-            v-model="selectedDuty"
-            :options="dutyOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Filter by duty"
-            class="w-48"
+          <Button
+            @click="addAdminVisible = true"
+            icon="pi pi-plus"
+            label="Add Admin"
+            class="bg-(--my-primary-color)! border-none! hover:opacity-85! text-(--my-secondary-color)!"
           />
         </div>
       </div>
@@ -380,7 +382,12 @@ onMounted(() => {
     <Column field="duty" header="Duty">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-16"></div>
-        <Tag v-else :value="slotProps.data.duty" :severity="getDutySeverity(slotProps.data.duty)" />
+        <Tag
+          v-else
+          :value="slotProps.data.duty"
+          :severity="getDutySeverity(slotProps.data.duty)"
+          class="capitalize"
+        />
       </template>
     </Column>
 
@@ -391,6 +398,7 @@ onMounted(() => {
           v-else
           :value="slotProps.data.status"
           :severity="getStatusSeverity(slotProps.data.status)"
+          class="capitalize"
         />
       </template>
     </Column>
@@ -402,23 +410,21 @@ onMounted(() => {
           <Button
             icon="pi pi-pencil"
             size="small"
-            @click="openEditAdmin(slotProps.data)"
-            class="p-button-text"
+            @click="openEditAdmin($event, slotProps.data)"
+            class="p-button-text text-(--my-secondary-color)! hover:bg-gray-100!"
           />
           <Button
-            icon="pi pi-cog"
+            icon="pi pi-ellipsis-v"
             size="small"
-            @click="openEditStatus(slotProps.data)"
-            class="p-button-text"
+            @click="openEditStatus($event, slotProps.data)"
+            class="p-button-text text-(--my-text-primary-color)! hover:bg-gray-100!"
           />
         </div>
       </template>
     </Column>
 
     <template #expansion="slotProps">
-      <div
-        class="flex flex-row p-5 gap-6"
-      >
+      <div class="flex flex-row p-5 gap-6">
         <!-- Avatar -->
         <div class="flex flex-col items-center gap-2">
           <div
@@ -508,6 +514,29 @@ onMounted(() => {
     </template>
   </DataTable>
 
+  <!-- Status Popover -->
+  <Popover ref="openActions" placement="top" class="min-w-[120px]">
+    <div class="flex flex-col">
+      <button
+        v-if="selectedAdmin?.status === 'inactive'"
+        @click="handleUpdateStatus('active')"
+        class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
+      >
+        <i class="pi pi-check"></i>
+        <span>Activate</span>
+      </button>
+
+      <button
+        v-if="selectedAdmin?.status === 'active'"
+        @click="handleUpdateStatus('inactive')"
+        class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
+      >
+        <i class="pi pi-times"></i>
+        <span>Deactivate</span>
+      </button>
+    </div>
+  </Popover>
+
   <!-- Add Admin Dialog -->
   <Dialog
     v-model:visible="addAdminVisible"
@@ -543,7 +572,9 @@ onMounted(() => {
 
         <FormField v-slot="$field" name="duty" class="flex flex-col">
           <label class="font-semibold mb-2">Duty</label>
-          <Dropdown
+          <Select
+            size="small"
+            v-model="$field.value"
             :options="dutyFormOptions"
             optionLabel="label"
             optionValue="value"
@@ -563,6 +594,22 @@ onMounted(() => {
       <FormField v-slot="$field" name="address" class="flex flex-col">
         <label class="font-semibold mb-2">Address</label>
         <InputText size="small" class="w-full" placeholder="Enter address" />
+        <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
+          {{ $field.error?.message }}
+        </Message>
+      </FormField>
+
+      <FormField v-slot="$field" name="password" class="flex flex-col">
+        <label class="font-semibold mb-2">Password</label>
+        <Password
+          :v-model="$field.value"
+          toggleMask
+          size="small"
+          class="w-full"
+          placeholder="Enter password"
+          :feedback="false"
+          fluid
+        />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
@@ -601,7 +648,7 @@ onMounted(() => {
     <Form
       ref="formRef"
       :initialValues="selectedAdmin"
-      :resolver
+      :resolver="editResolver"
       @submit="handleEditSubmit"
       :validateOnSubmit="true"
       class="w-full flex flex-col gap-4"
@@ -615,32 +662,26 @@ onMounted(() => {
       </FormField>
 
       <div class="grid grid-cols-2 gap-4">
-        <FormField v-slot="$field" name="email" class="flex flex-col">
-          <label class="font-semibold mb-2">Email</label>
-          <InputText size="small" class="w-full" placeholder="Enter email" />
-          <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
-            {{ $field.error?.message }}
-          </Message>
-        </FormField>
-
         <FormField v-slot="$field" name="duty" class="flex flex-col">
           <label class="font-semibold mb-2">Duty</label>
-          <Dropdown
+          <Select
+            v-model="$field.value"
+            size="small"
             :options="dutyFormOptions"
             optionLabel="label"
             optionValue="value"
             class="w-full"
           />
         </FormField>
-      </div>
 
-      <FormField v-slot="$field" name="phoneNumber" class="flex flex-col">
-        <label class="font-semibold mb-2">Phone Number</label>
-        <InputText size="small" class="w-full" placeholder="Enter phone number" />
-        <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
-          {{ $field.error?.message }}
-        </Message>
-      </FormField>
+        <FormField v-slot="$field" name="phoneNumber" class="flex flex-col">
+          <label class="font-semibold mb-2">Phone Number</label>
+          <InputText size="small" class="w-full" placeholder="Enter phone number" />
+          <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
+            {{ $field.error?.message }}
+          </Message>
+        </FormField>
+      </div>
 
       <FormField v-slot="$field" name="address" class="flex flex-col">
         <label class="font-semibold mb-2">Address</label>
@@ -669,48 +710,6 @@ onMounted(() => {
           :disabled="isSubmitting"
         />
       </div>
-    </template>
-  </Dialog>
-
-  <!-- Edit Status Dialog -->
-  <Dialog
-    v-model:visible="editStatusVisible"
-    modal
-    :draggable="false"
-    header="Update Admin Status"
-    :style="{ minWidth: '25rem' }"
-  >
-    <div class="flex flex-col gap-4">
-      <p>
-        Update status for <strong>{{ selectedAdmin?.fullname }}</strong
-        >:
-      </p>
-
-      <div class="flex gap-2">
-        <Button
-          label="Active"
-          severity="success"
-          @click="handleUpdateStatus('active')"
-          :loading="isSubmitting"
-          :disabled="isSubmitting || selectedAdmin?.status === 'active'"
-        />
-        <Button
-          label="Inactive"
-          severity="warn"
-          @click="handleUpdateStatus('inactive')"
-          :loading="isSubmitting"
-          :disabled="isSubmitting || selectedAdmin?.status === 'inactive'"
-        />
-      </div>
-    </div>
-
-    <template #footer>
-      <Button
-        label="Close"
-        severity="secondary"
-        @click="editStatusVisible = false"
-        :disabled="isSubmitting"
-      />
     </template>
   </Dialog>
 </template>

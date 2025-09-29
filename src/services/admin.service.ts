@@ -47,7 +47,7 @@ export async function createAdmin(payload: CreateAdminPayload) {
 
 export async function resetAdminPassword(adminId: string, newPassword: string) {
   try {
-    const response = await apiClient.post(`/admin/admin/${adminId}/reset-password`, { newPassword })
+    const response = await apiClient.post(`/admin/admins/${adminId}/reset-password`, { newPassword })
     return response.data
   } catch (error) {
     console.error('Error resetting admin password:', error)
@@ -57,7 +57,7 @@ export async function resetAdminPassword(adminId: string, newPassword: string) {
 
 export async function updateAdmin(adminId: string, payload: UpdatePayload) {
   try {
-    const response = await apiClient.patch(`/admin/admin/${adminId}`, payload)
+    const response = await apiClient.patch(`/admin/admins/${adminId}`, payload)
     return response.data
   } catch (error) {
     console.error('Error updating admin:', error)
