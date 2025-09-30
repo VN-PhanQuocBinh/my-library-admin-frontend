@@ -7,11 +7,15 @@ import {
   InputIcon,
   InputText,
   Button,
-  Dropdown,
+  Select, 
   Dialog,
   Message,
   useToast,
   Tag,
+  Divider,
+  Popover,
+  DatePicker,
+  Password, 
 } from 'primevue'
 
 import { Form, FormField } from '@primevue/forms'
@@ -45,6 +49,7 @@ const ReaderSchema = z.object({
   phoneNumber: z.string().min(1, 'Phone number is required'),
   dateOfBirth: z.date(),
   address: z.string().min(1, 'Address is required'),
+  password: z.string().min(6, 'Password must be at least 6 characters long'),
 })
 
 type ReaderFormType = z.infer<typeof ReaderSchema>
@@ -52,6 +57,7 @@ type ReaderFormType = z.infer<typeof ReaderSchema>
 // State
 const toast = useToast()
 const resolver = zodResolver(ReaderSchema)
+const editResolver = zodResolver(ReaderSchema.omit({ email: true, password: true })) 
 
 const readers = ref<Reader[]>([])
 const isLoadingData = ref(false)
@@ -59,10 +65,10 @@ const expandedRows = ref({})
 
 const searchQuery = ref('')
 const selectedStatus = ref<string | null>(null)
+const selectedGender = ref<string | null>(null) // Added gender filter
 const [debouncedSearchQuery, setDebouncedSearchQuery] = useDebounce('', 300)
 
 const statusOptions = [
-  { label: 'All', value: null },
   { label: 'Active', value: 'active' },
   { label: 'Inactive', value: 'inactive' },
   { label: 'Banned', value: 'banned' },
@@ -74,10 +80,12 @@ const genderOptions = [
   { label: 'Other', value: 'other' },
 ]
 
+// Action menu
+const openActions = ref<any>(null)
+
 // Dialog states
 const addReaderVisible = ref(false)
 const editReaderVisible = ref(false)
-const editStatusVisible = ref(false)
 const selectedReader = ref<Reader | undefined>(undefined)
 const isSubmitting = ref(false)
 const formRef = ref<any>(null)
@@ -90,6 +98,7 @@ const initialCreateValues = ref<Partial<CreateUserPayload>>({
   phoneNumber: '',
   address: '',
   dateOfBirth: new Date(),
+  password: '',
 })
 
 const pagination = ref({
@@ -104,7 +113,7 @@ const fetchUsers = async (page = 0, limit = 10) => {
   try {
     isLoadingData.value = true
 
-    const queries: UserParams = {}
+    const queries: UserParams = { page, limit } // Added page and limit
     debouncedSearchQuery.value && (queries['query'] = debouncedSearchQuery.value)
     selectedStatus.value && (queries['status'] = selectedStatus.value || '')
 
@@ -148,15 +157,16 @@ const handleCreateReader = async (data: CreateUserPayload) => {
       life: 3000,
     })
     await fetchUsers()
-  } catch (error) {
+    addReaderVisible.value = false // Moved inside try block
+  } catch (error: any) {
+    // Added error type and better error handling
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: 'Failed to create reader',
+      detail: error?.response?.data?.message || 'Failed to create reader',
       life: 3000,
     })
   } finally {
-    addReaderVisible.value = false
     isSubmitting.value = false
   }
 }
@@ -188,6 +198,8 @@ const handleEditReader = async (data: ReaderFormType) => {
 }
 
 const handleUpdateStatus = async (status: string) => {
+  console.log('Updating status to:', status)
+
   try {
     isSubmitting.value = true
     const userId = selectedReader.value?._id || ''
@@ -209,12 +221,14 @@ const handleUpdateStatus = async (status: string) => {
       life: 3000,
     })
   } finally {
-    editStatusVisible.value = false
+    openActions.value?.hide() // Added
     isSubmitting.value = false
   }
 }
 
 const handleSubmit = async (event: any) => {
+  console.log(event)
+
   if (event.valid) {
     const { values: formValues } = event
     await handleCreateReader(formValues)
@@ -229,6 +243,8 @@ const handleSubmit = async (event: any) => {
 }
 
 const handleEditSubmit = async (event: any) => {
+  console.log(event)
+
   if (event.valid) {
     const { values: formValues } = event
     await handleEditReader(formValues)
@@ -255,14 +271,32 @@ const getStatusSeverity = (status: string) => {
   }
 }
 
-const openEditReader = (reader: Reader) => {
-  selectedReader.value = { ...reader }
+const getGenderSeverity = (gender: string) => {
+  // Added
+  switch (gender) {
+    case 'male':
+      return 'info'
+    case 'female':
+      return 'secondary'
+    case 'other':
+      return 'warn'
+    default:
+      return 'info'
+  }
+}
+
+const openEditReader = (event: any, reader: Reader) => {
+  selectedReader.value = {
+    ...reader,
+    dateOfBirth: new Date(reader.dateOfBirth),
+  }
   editReaderVisible.value = true
 }
 
-const openEditStatus = (reader: Reader) => {
+const openEditStatus = (event: any, reader: Reader) => {
+  // Updated to use popover
   selectedReader.value = reader
-  editStatusVisible.value = true
+  openActions.value?.toggle(event)
 }
 
 // Watchers
@@ -270,7 +304,8 @@ watch(searchQuery, (newValue) => {
   setDebouncedSearchQuery(newValue)
 })
 
-watch([debouncedSearchQuery, selectedStatus], () => {
+watch([debouncedSearchQuery, selectedStatus, selectedGender], () => {
+  // Added selectedGender
   pagination.value.page = 0
   fetchUsers()
 })
@@ -297,20 +332,22 @@ onMounted(() => {
     </template>
 
     <template #header>
-      <div class="flex flex-col gap-4">
-        <div class="flex flex-row items-center justify-between gap-2.5">
-          <h2 class="flex-1 text-lg font-semibold text-(--my-secondary-color)">Reader List</h2>
-
-          <Button
-            @click="addReaderVisible = true"
-            icon="pi pi-plus"
-            label="Add Reader"
-            class="bg-(--my-primary-color)! border-none! hover:opacity-85! text-(--my-secondary-color)!"
+      <!-- Updated header layout to match admin tab -->
+      <div class="flex flex-row items-center justify-between w-full gap-4">
+        <div class="flex flex-row items-center gap-2.5">
+          <Select
+            v-model="selectedStatus"
+            :options="statusOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Filter by status"
+            class="w-48"
+            showClear
           />
         </div>
 
-        <div class="flex flex-row items-center gap-4">
-          <IconField class="bg-white! flex-1">
+        <div class="flex flex-row items-center justify-between gap-2.5">
+          <IconField class="bg-white!">
             <InputIcon class="pi pi-search" />
             <InputText
               v-model="searchQuery"
@@ -318,14 +355,11 @@ onMounted(() => {
               class="w-full focus:border-(--my-primary-color)!"
             />
           </IconField>
-
-          <Dropdown
-            v-model="selectedStatus"
-            :options="statusOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Filter by status"
-            class="w-48"
+          <Button
+            @click="addReaderVisible = true"
+            icon="pi pi-plus"
+            label="Add Reader"
+            class="bg-(--my-primary-color)! border-none! hover:opacity-85! text-(--my-secondary-color)!"
           />
         </div>
       </div>
@@ -361,6 +395,19 @@ onMounted(() => {
       </template>
     </Column>
 
+    <!-- Added Gender column -->
+    <Column field="gender" header="Gender">
+      <template #body="slotProps">
+        <div v-if="isLoadingData" class="skeleton h-4 rounded w-16"></div>
+        <Tag
+          v-else
+          :value="slotProps.data.gender"
+          :severity="getGenderSeverity(slotProps.data.gender)"
+          class="capitalize"
+        />
+      </template>
+    </Column>
+
     <Column field="status" header="Status">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-16"></div>
@@ -368,6 +415,7 @@ onMounted(() => {
           v-else
           :value="slotProps.data.status"
           :severity="getStatusSeverity(slotProps.data.status)"
+          class="capitalize"
         />
       </template>
     </Column>
@@ -379,30 +427,116 @@ onMounted(() => {
           <Button
             icon="pi pi-pencil"
             size="small"
-            @click="openEditReader(slotProps.data)"
-            class="p-button-text"
+            @click="openEditReader($event, slotProps.data)"
+            class="p-button-text text-(--my-secondary-color)! hover:bg-gray-100!"
           />
           <Button
-            icon="pi pi-cog"
+            icon="pi pi-ellipsis-v"
             size="small"
-            @click="openEditStatus(slotProps.data)"
-            class="p-button-text"
+            @click="openEditStatus($event, slotProps.data)"
+            class="p-button-text text-(--my-text-primary-color)! hover:bg-gray-100!"
           />
         </div>
       </template>
     </Column>
 
+    <!-- Updated expansion template to match admin tab style -->
     <template #expansion="slotProps">
-      <div class="p-4">
-        <h5 class="font-semibold mb-3">Additional Information</h5>
-        <div class="grid grid-cols-2 gap-4">
-          <div><strong>Gender:</strong> {{ slotProps.data.gender }}</div>
-          <div><strong>Phone:</strong> {{ slotProps.data.phoneNumber }}</div>
-          <div>
-            <strong>Created:</strong> {{ new Date(slotProps.data.createdAt).toLocaleDateString() }}
+      <div class="flex flex-row p-5 gap-6">
+        <!-- Avatar -->
+        <div class="flex flex-col items-center gap-2">
+          <div
+            class="flex items-center justify-center size-20 bg-(--my-primary-color) rounded-full text-white text-4xl font-semibold"
+          >
+            {{ slotProps.data.firstname.charAt(0).toUpperCase() }}
           </div>
-          <div>
-            <strong>Updated:</strong> {{ new Date(slotProps.data.updatedAt).toLocaleDateString() }}
+          <Tag
+            :value="slotProps.data.gender"
+            :severity="getGenderSeverity(slotProps.data.gender)"
+          />
+          <div class="flex flex-col items-center gap-0">
+            <h4 class="font-semibold">
+              {{ slotProps.data.firstname }} {{ slotProps.data.lastname }}
+            </h4>
+            <span class="text-sm text-gray-400">{{ slotProps.data.email }}</span>
+          </div>
+        </div>
+
+        <Divider layout="vertical" />
+
+        <!-- Details -->
+        <div class="flex-1 grid grid-cols-3 gap-4">
+          <!-- Gender -->
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold">Gender:</span>
+            <Tag
+              class="w-max"
+              :value="slotProps.data.gender"
+              :severity="getGenderSeverity(slotProps.data.gender)"
+            />
+          </div>
+
+          <!-- Status -->
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold">Status:</span>
+            <Tag
+              class="w-max"
+              :value="slotProps.data.status"
+              :severity="getStatusSeverity(slotProps.data.status)"
+            />
+          </div>
+
+          <!-- Phone -->
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold">Phone:</span>
+            <div class="flex items-center gap-2">
+              <span
+                class="flex-1 rounded-[6px] bg-gray-100 text-(--my-text-primary-color) px-2 py-1"
+                >{{ slotProps.data.phoneNumber }}</span
+              >
+              <Button
+                icon="pi pi-copy"
+                size="small"
+                class="p-button-text p-button-rounded p-button-secondary"
+                :disabled="!slotProps.data.phoneNumber"
+                @click="console.log('copied to clipboard')"
+              />
+            </div>
+          </div>
+
+          <!-- Date of Birth -->
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold">Date of Birth:</span>
+            <span class="rounded-[6px] bg-gray-100 text-(--my-text-primary-color) px-2 py-1">{{
+              new Date(slotProps.data.dateOfBirth).toLocaleDateString()
+            }}</span>
+          </div>
+
+          <!-- Address -->
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold">Address:</span>
+            <div class="flex items-center gap-2">
+              <span
+                class="flex-1 rounded-[6px] bg-gray-100 text-(--my-text-primary-color) px-2 py-1"
+                >{{ slotProps.data.address }}</span
+              >
+              <Button
+                icon="pi pi-copy"
+                size="small"
+                class="p-button-text p-button-rounded p-button-secondary"
+                :disabled="!slotProps.data.address"
+                @click="console.log('copied to clipboard')"
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1 text-(--my-text-primary-color)">
+            <span class="font-semibold">Created:</span>
+            <span>{{ new Date(slotProps.data.createdAt).toLocaleDateString() }}</span>
+          </div>
+          <div class="flex flex-col gap-1 text-(--my-text-primary-color)">
+            <span class="font-semibold">Updated:</span>
+            <span>{{ new Date(slotProps.data.updatedAt).toLocaleDateString() }}</span>
           </div>
         </div>
       </div>
@@ -414,6 +548,47 @@ onMounted(() => {
       of {{ pagination.total }} readers.
     </template>
   </DataTable>
+
+  <!-- Status Popover -->
+  <Popover ref="openActions" placement="top" class="min-w-[120px]">
+    <div class="flex flex-col">
+      <button
+        v-if="selectedReader?.status === 'inactive'"
+        @click="handleUpdateStatus('active')"
+        class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
+      >
+        <i class="pi pi-check"></i>
+        <span>Activate</span>
+      </button>
+
+      <button
+        v-if="selectedReader?.status === 'active'"
+        @click="handleUpdateStatus('inactive')"
+        class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
+      >
+        <i class="pi pi-times"></i>
+        <span>Deactivate</span>
+      </button>
+
+      <button
+        v-if="selectedReader?.status !== 'banned'"
+        @click="handleUpdateStatus('banned')"
+        class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-red-500 hover:text-white transition-all duration-200"
+      >
+        <i class="pi pi-ban"></i>
+        <span>Ban</span>
+      </button>
+
+      <button
+        v-if="selectedReader?.status === 'banned'"
+        @click="handleUpdateStatus('active')"
+        class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
+      >
+        <i class="pi pi-check"></i>
+        <span>Unban</span>
+      </button>
+    </div>
+  </Popover>
 
   <!-- Add Reader Dialog -->
   <Dialog
@@ -452,7 +627,9 @@ onMounted(() => {
       <div class="grid grid-cols-2 gap-4">
         <FormField v-slot="$field" name="gender" class="flex flex-col">
           <label class="font-semibold mb-2">Gender</label>
-          <Dropdown
+          <Select
+            v-model="$field.value"
+            size="small"
             :options="genderOptions"
             optionLabel="label"
             optionValue="value"
@@ -462,7 +639,7 @@ onMounted(() => {
 
         <FormField v-slot="$field" name="dateOfBirth" class="flex flex-col">
           <label class="font-semibold mb-2">Date of Birth</label>
-          <InputText type="date" size="small" class="w-full" />
+          <DatePicker v-model="$field.value" dateFormat="mm/dd/yy" size="small" class="w-full" />
         </FormField>
       </div>
 
@@ -485,6 +662,14 @@ onMounted(() => {
       <FormField v-slot="$field" name="address" class="flex flex-col">
         <label class="font-semibold mb-2">Address</label>
         <InputText size="small" class="w-full" placeholder="Enter address" />
+        <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
+          {{ $field.error?.message }}
+        </Message>
+      </FormField>
+
+      <FormField v-slot="$field" name="password" class="flex flex-col">
+        <label class="font-semibold mb-2">Password</label>
+        <Password size="small" class="w-full" placeholder="Enter password" :feedback="false" toggleMask fluid />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
@@ -523,12 +708,12 @@ onMounted(() => {
     <Form
       ref="formRef"
       :initialValues="selectedReader"
-      :resolver
+      :resolver="editResolver"
       @submit="handleEditSubmit"
       :validateOnSubmit="true"
       class="w-full flex flex-col gap-4"
     >
-      <!-- Same form fields as Add Reader -->
+      <!-- Same form fields as Add Reader but excluding email -->
       <div class="grid grid-cols-2 gap-4">
         <FormField v-slot="$field" name="firstname" class="flex flex-col">
           <label class="font-semibold mb-2">First Name</label>
@@ -550,7 +735,9 @@ onMounted(() => {
       <div class="grid grid-cols-2 gap-4">
         <FormField v-slot="$field" name="gender" class="flex flex-col">
           <label class="font-semibold mb-2">Gender</label>
-          <Dropdown
+          <Select
+            v-model="$field.value"
+            size="small"
             :options="genderOptions"
             optionLabel="label"
             optionValue="value"
@@ -560,17 +747,15 @@ onMounted(() => {
 
         <FormField v-slot="$field" name="dateOfBirth" class="flex flex-col">
           <label class="font-semibold mb-2">Date of Birth</label>
-          <InputText type="date" size="small" class="w-full" />
+          <DatePicker
+            v-model="$field.value"
+            size="small"
+            class="w-full"
+            dateFormat="mm/dd/yy"
+            showIcon
+          />
         </FormField>
       </div>
-
-      <FormField v-slot="$field" name="email" class="flex flex-col">
-        <label class="font-semibold mb-2">Email</label>
-        <InputText size="small" class="w-full" placeholder="Enter email" />
-        <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
-          {{ $field.error?.message }}
-        </Message>
-      </FormField>
 
       <FormField v-slot="$field" name="phoneNumber" class="flex flex-col">
         <label class="font-semibold mb-2">Phone Number</label>
@@ -607,56 +792,6 @@ onMounted(() => {
           :disabled="isSubmitting"
         />
       </div>
-    </template>
-  </Dialog>
-
-  <!-- Edit Status Dialog -->
-  <Dialog
-    v-model:visible="editStatusVisible"
-    modal
-    :draggable="false"
-    header="Update Reader Status"
-    :style="{ minWidth: '25rem' }"
-  >
-    <div class="flex flex-col gap-4">
-      <p>
-        Update status for
-        <strong>{{ selectedReader?.firstname }} {{ selectedReader?.lastname }}</strong
-        >:
-      </p>
-
-      <div class="flex gap-2">
-        <Button
-          label="Active"
-          severity="success"
-          @click="handleUpdateStatus('active')"
-          :loading="isSubmitting"
-          :disabled="isSubmitting || selectedReader?.status === 'active'"
-        />
-        <Button
-          label="Inactive"
-          severity="warn"
-          @click="handleUpdateStatus('inactive')"
-          :loading="isSubmitting"
-          :disabled="isSubmitting || selectedReader?.status === 'inactive'"
-        />
-        <Button
-          label="Banned"
-          severity="danger"
-          @click="handleUpdateStatus('banned')"
-          :loading="isSubmitting"
-          :disabled="isSubmitting || selectedReader?.status === 'banned'"
-        />
-      </div>
-    </div>
-
-    <template #footer>
-      <Button
-        label="Close"
-        severity="secondary"
-        @click="editStatusVisible = false"
-        :disabled="isSubmitting"
-      />
     </template>
   </Dialog>
 </template>

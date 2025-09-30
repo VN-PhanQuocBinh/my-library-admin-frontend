@@ -36,6 +36,7 @@ import type { BookGenre } from '@/types/book'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 
 import { useDebounce } from '@/utils/use-debounce'
+import { preview } from 'vite'
 
 // State variables
 const resolver = zodResolver(BookSchema)
@@ -85,10 +86,7 @@ const isSubmitting = ref(false)
 const addBookVisible = ref<boolean>(false)
 const deleteConfirmVisible = ref<boolean>(false)
 const editVisible = ref<boolean>(false)
-const selectedBook = ref<{ _id: string; status: boolean }>({
-  _id: '',
-  status: false,
-})
+const selectedBook = ref<Book | null>(null)
 
 const [debouncedSearchQuery, setDebouncedSearchQuery] = useDebounce('', 300)
 const searchQuery = ref('')
@@ -177,7 +175,7 @@ watch([books, pagination], (newValues) => {
 watch(editVisible, (newVal) => {
   if (newVal) {
     // Reset form values when dialog is opened
-    const bookToEdit = books.value.find((book) => book._id === selectedBook.value._id)
+    const bookToEdit = books.value.find((book) => book._id === selectedBook.value?._id)
     if (bookToEdit) {
       initialEditValues.value = {
         _id: bookToEdit._id,
@@ -194,10 +192,7 @@ watch(editVisible, (newVal) => {
   }
 })
 
-const toggleOpen = (
-  event: any,
-  selectedInfo: { _id: string; status: boolean } = { _id: '', status: false },
-) => {
+const toggleOpen = (event: any, selectedInfo: Book) => {
   selectedBook.value = selectedInfo
   open.value?.toggle(event)
 }
@@ -207,7 +202,18 @@ const previewCoverUrl = ref<string | null>(null)
 const selectedDetailedImages = ref<File[]>([])
 const previewDetailedUrls = ref<string[]>([])
 
+const oldCoverImage = ref<string | null>(null)
+const oldDetailedImages = ref<string[]>([])
+
+const oldRemovedCoverImage = ref<string | null>(null)
+const oldRemovedDetailedImages = ref<string[]>([])
+
 function handleSelectCoverImage(e: any) {
+  // Revoking old cover image URL
+  oldRemovedCoverImage.value = oldCoverImage.value
+  oldCoverImage.value = null
+
+  // Setting new selected file
   const file = e.files[0]
   if (file) {
     selectedCoverImage.value = file
@@ -216,12 +222,14 @@ function handleSelectCoverImage(e: any) {
 }
 
 function handleSelectDetailedImages(e: any) {
+  // Append new selected files
   const files = e.files
   if (files && files.length > 0) {
     selectedDetailedImages.value = Array.from(files)
-    previewDetailedUrls.value = selectedDetailedImages.value.map((file) =>
-      URL.createObjectURL(file),
-    )
+
+    const newImages = selectedDetailedImages.value.map((file) => URL.createObjectURL(file))
+
+    previewDetailedUrls.value = [...previewDetailedUrls.value, ...newImages]
   }
 }
 
@@ -230,9 +238,22 @@ function handleClearCoverImage() {
 }
 
 function handleClearDetailedImages() {
+  oldCoverImage.value = null
+
   previewDetailedUrls.value.forEach((url) => URL.revokeObjectURL(url))
   previewDetailedUrls.value = []
   selectedDetailedImages.value = []
+}
+
+const handleOpenEditBook = () => {
+  console.log('Edit book clicked', selectedBook.value)
+
+  oldCoverImage.value = selectedBook.value?.coverImage || null
+  oldDetailedImages.value = selectedBook.value?.detailedImages || []
+
+  // previewCoverUrl.value = selectedBook.value?.coverImage || null
+  // previewDetailedUrls.value = selectedBook.value?.detailedImages || []
+  editVisible.value = true
 }
 
 const handleCreateBook = async (data: FormData) => {
@@ -255,7 +276,7 @@ const handleCreateBook = async (data: FormData) => {
   }
 }
 
-const handleUpdateBook = async (bookId: string, data: FormData) => {
+const handleUpdateBook = async (bookId: string = '', data: FormData) => {
   try {
     isSubmitting.value = true
 
@@ -304,8 +325,47 @@ const handleSubmit = async (event: any) => {
     if (addBookVisible.value) {
       await handleCreateBook(formData)
     } else if (editVisible.value) {
-      await handleUpdateBook(selectedBook.value._id, formData)
+      await handleUpdateBook(selectedBook.value?._id, formData)
     }
+  } else {
+    toast.add({
+      severity: 'error',
+      summary: 'Validation Error',
+      detail: 'Please correct the errors in the form.',
+      life: 3000,
+    })
+  }
+}
+
+const handleSubmitEditBook = async (event: any) => {
+  console.log(oldRemovedCoverImage.value, oldRemovedDetailedImages.value)
+  return
+
+  if (event.valid) {
+    const formData = new FormData()
+
+    const { values: formValues } = event
+
+    console.log('Form Values:', formValues)
+    return
+    formData.append('name', formValues.name)
+    formData.append('description', formValues.description)
+    formData.append('author', formValues.author)
+    formData.append('genre', formValues.genre)
+    formData.append('price', JSON.stringify({ original: formValues.price, sale: 0 }))
+    formData.append('quantity', formValues.quantity.toString())
+    formData.append('publishedDate', formValues.publishedDate.toISOString())
+    formData.append('publisher', formValues.publisher)
+
+    if (selectedCoverImage.value) {
+      formData.append('coverImage', selectedCoverImage.value)
+    }
+
+    selectedDetailedImages.value.forEach((file, index) => {
+      formData.append('detailedImages', file)
+    })
+
+    await handleUpdateBook(selectedBook.value._id, formData)
   } else {
     toast.add({
       severity: 'error',
@@ -333,7 +393,8 @@ const handleToggleBookStatus = async () => {
 
     await updateBook(bookId, formData)
 
-    selectedBook.value = { _id: '', status: false }
+    // selectedBook.value = { _id: '', status: false }
+    selectedBook.value = null
 
     await fetchBooksWithQuery()
     toast.add({
@@ -348,6 +409,30 @@ const handleToggleBookStatus = async () => {
     isSubmitting.value = false
     deleteConfirmVisible.value = false
   }
+}
+
+const handleRemoveOldDetailedImage = (index: number) => {
+  const removedImage = oldDetailedImages.value?.[index] || null
+  if (removedImage) {
+    oldRemovedDetailedImages.value.push(removedImage)
+    oldDetailedImages.value?.splice(index, 1)
+  }
+  console.log('Remove old detailed image at index:', oldRemovedDetailedImages?.value)
+}
+
+const handleRemoveUploadedDetailedImage = (
+  index: number,
+  removeFileCallback: (file: File) => void,
+) => {
+  const removedImage = previewDetailedUrls.value?.[index] || null
+  if (removedImage) {
+    URL.revokeObjectURL(removedImage)
+
+    previewDetailedUrls.value?.splice(index, 1)
+    selectedDetailedImages.value?.splice(index, 1)
+    removeFileCallback(selectedDetailedImages.value[index])
+  }
+  console.log('Remove new detailed image at index:', index)
 }
 
 onBeforeUnmount(() => {
@@ -486,7 +571,7 @@ onBeforeUnmount(() => {
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
         <div v-else>
-          <span>{{ slotProps.data.publisher?.name || "Unknown Publisher" }}</span>
+          <span>{{ slotProps.data.publisher?.name || 'Unknown Publisher' }}</span>
           <!-- <span v-if="slotProps.data.publisher">{{ slotProps.data.publisher.name }}</span>
           <div v-else class="text-(--my-text-secondary-color) text-center">Unknown Publisher</div> -->
         </div>
@@ -524,7 +609,7 @@ onBeforeUnmount(() => {
         <div v-else class="flex flex-row items-center justify-center gap-2.5">
           <Button
             icon="pi pi-ellipsis-v"
-            @click="toggleOpen($event, { _id: slotProps.data._id, status: slotProps.data.status })"
+            @click="toggleOpen($event, slotProps.data)"
             unstyled
             class="size-8 rounded-xs"
           />
@@ -538,7 +623,7 @@ onBeforeUnmount(() => {
   <Popover ref="open" placement="top" class="min-w-[120px]">
     <div class="flex flex-col">
       <button
-        @click="editVisible = true"
+        @click="handleOpenEditBook()"
         class="flex flex-row items-center gap-2.5 p-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
       >
         <i class="pi pi-pen-to-square"></i>
@@ -548,8 +633,8 @@ onBeforeUnmount(() => {
         @click="handleOpenDeleteConfirm()"
         class="flex flex-row items-center gap-2.5 p-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
       >
-        <i :class="`pi ${selectedBook.status ? 'pi-trash' : 'pi-check'}`"></i>
-        <span>{{ selectedBook.status ? 'Mark as Out of Stock' : 'Mark as Available' }}</span>
+        <i :class="`pi ${selectedBook?.status ? 'pi-trash' : 'pi-check'}`"></i>
+        <span>{{ selectedBook?.status ? 'Mark as Out of Stock' : 'Mark as Available' }}</span>
       </button>
     </div>
   </Popover>
@@ -886,9 +971,9 @@ onBeforeUnmount(() => {
           :disabled="isSubmitting"
         />
         <Button
-          :label="selectedBook.status ? 'Mark as Out of Stock' : 'Mark as Available'"
+          :label="selectedBook?.status ? 'Mark as Out of Stock' : 'Mark as Available'"
           :class="[
-            { 'bg-red-600!': selectedBook.status, 'bg-green-600!': !selectedBook.status },
+            { 'bg-red-600!': selectedBook?.status, 'bg-green-600!': !selectedBook?.status },
             'text-white! border-none! hover:opacity-85!',
           ]"
           @click="handleToggleBookStatus"
@@ -922,7 +1007,7 @@ onBeforeUnmount(() => {
       ref="formRef"
       :initialValues="initialEditValues"
       :resolver
-      @submit="handleSubmit"
+      @submit="handleSubmitEditBook"
       :validateOnSubmit="true"
       class="w-full max-h-full flex flex-col gap-5"
     >
@@ -965,15 +1050,27 @@ onBeforeUnmount(() => {
             <!-- Content -->
             <template #content>
               <Image
-                v-if="previewCoverUrl"
-                :src="previewCoverUrl"
+                v-if="previewCoverUrl || oldCoverImage"
+                :src="
+                  oldCoverImage !== null
+                    ? oldCoverImage
+                    : previewCoverUrl !== null
+                      ? previewCoverUrl
+                      : ''
+                "
                 alt="Cover Image"
                 preview
                 class="aspect-[150/200] rounded-xs overflow-hidden mb-4 w-full!"
               >
                 <template #image>
                   <img
-                    :src="previewCoverUrl"
+                    :src="
+                      oldCoverImage !== null
+                        ? oldCoverImage
+                        : previewCoverUrl !== null
+                          ? previewCoverUrl
+                          : ''
+                    "
                     alt="Cover Image"
                     class="w-full h-full object-contain"
                   />
@@ -983,7 +1080,7 @@ onBeforeUnmount(() => {
 
             <!-- Empty -->
             <template #empty>
-              <div class="text-center">
+              <div v-if="previewCoverUrl?.length === 0" class="text-center">
                 <div class="flex items-center justify-center flex-col">
                   <i
                     class="pi pi-cloud-upload !border-2 border-(--my-text-secondary-color)! border-dashed !rounded-full !p-8 !text-4xl !text-(--my-text-secondary-color)"
@@ -1032,22 +1129,51 @@ onBeforeUnmount(() => {
             </template>
 
             <!-- Content -->
-            <template #content>
-              <div v-if="previewDetailedUrls.length > 0" class="grid grid-cols-2 gap-2.5 mb-4">
-                <Image
-                  v-for="(url, index) in previewDetailedUrls"
-                  :key="index"
-                  :src="url"
-                  alt="Detailed Image"
-                  preview
-                  class="aspect-[150/200] rounded-xs overflow-hidden w-full!"
-                />
+            <template #content="{ removeFileCallback, removeUploadedFileCallback }">
+              <div
+                v-if="oldDetailedImages.length > 0 || previewDetailedUrls.length > 0"
+                class="grid grid-cols-2 gap-2.5 mb-4"
+              >
+                <div class="relative" v-for="(url, index) in oldDetailedImages" :key="index">
+                  <Image
+                    :src="url"
+                    alt="Detailed Image"
+                    preview
+                    class="aspect-[150/200] rounded-xs overflow-hidden w-full!"
+                  />
+                  <Button
+                    size="small"
+                    icon="pi pi-times"
+                    severity="danger"
+                    class="top-0 right-0 rounded-full p-2 !text-white! bg-black/50! hover:bg-black/70! border-none! w-full!"
+                    @click="handleRemoveOldDetailedImage(index)"
+                  />
+                </div>
+
+                <div class="relative" v-for="(url, index) in previewDetailedUrls" :key="index">
+                  <Image
+                    :src="url"
+                    alt="Detailed Image"
+                    preview
+                    class="aspect-[150/200] rounded-xs overflow-hidden w-full!"
+                  />
+                  <Button
+                    size="small"
+                    icon="pi pi-times"
+                    severity="danger"
+                    class="top-0 right-0 rounded-full p-2 !text-white! bg-black/50! hover:bg-black/70! border-none! w-full!"
+                    @click="handleRemoveUploadedDetailedImage(index, removeFileCallback)"
+                  />
+                </div>
               </div>
             </template>
 
             <!-- Empty -->
             <template #empty>
-              <div class="text-center">
+              <div
+                v-if="!(oldDetailedImages.length > 0 || previewDetailedUrls.length > 0)"
+                class="text-center"
+              >
                 <div class="flex items-center justify-center flex-col">
                   <i
                     class="pi pi-cloud-upload !border-2 border-(--my-text-secondary-color)! border-dashed !rounded-full !p-8 !text-4xl !text-(--my-text-secondary-color)"
