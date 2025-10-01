@@ -30,13 +30,14 @@ import type { Book } from '@/types/book'
 
 import { formatVND } from '@/utils/format-currency'
 
-import { BookSchema, type BookType } from '@/types/book-schema'
+import { BookSchema } from '@/types/book-schema'
+import type { BookType } from '@/types/book-schema'
+import type { ImageInfo } from '@/types/book'
 import { BOOK_GENRES } from '@/types/book'
 import type { BookGenre } from '@/types/book'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 
 import { useDebounce } from '@/utils/use-debounce'
-import { preview } from 'vite'
 
 // State variables
 const resolver = zodResolver(BookSchema)
@@ -94,7 +95,30 @@ const selectedPublisher = ref<string | null>(null)
 const selectedGenre = ref<BookGenre | null>(null)
 const selectedStatus = ref<'active' | 'inactive' | null>(null)
 
+const selectedCoverImage = ref<File | null>(null)
+const previewCoverUrl = ref<string | null>(null)
+
+const selectedDetailedImages = ref<File[]>([])
+const previewDetailedUrls = ref<string[]>([])
+
+const oldCoverImage = ref<ImageInfo | null>(null)
+const oldDetailedImages = ref<ImageInfo[]>([])
+
+const oldRemovedCoverImage = ref<ImageInfo | null>(null)
+const oldRemovedDetailedImages = ref<ImageInfo[]>([])
+
 // Fetch books from the API
+
+const resetState = () => {
+  selectedCoverImage.value = null
+  previewCoverUrl.value = null
+  selectedDetailedImages.value = []
+  previewDetailedUrls.value = []
+  oldCoverImage.value = null
+  oldDetailedImages.value = []
+  oldRemovedCoverImage.value = null
+  oldRemovedDetailedImages.value = []
+}
 
 const fetchBooksWithQuery = async () => {
   try {
@@ -132,6 +156,10 @@ const fetchBooksWithQuery = async () => {
 
 watch(isLoadingData, (newLoading) => {
   console.log('isLoadingData changed:', newLoading)
+})
+
+watch(books, (_) => {
+  resetState()
 })
 
 const loadData = async () => {
@@ -196,17 +224,6 @@ const toggleOpen = (event: any, selectedInfo: Book) => {
   selectedBook.value = selectedInfo
   open.value?.toggle(event)
 }
-const selectedCoverImage = ref<File | null>(null)
-const previewCoverUrl = ref<string | null>(null)
-
-const selectedDetailedImages = ref<File[]>([])
-const previewDetailedUrls = ref<string[]>([])
-
-const oldCoverImage = ref<string | null>(null)
-const oldDetailedImages = ref<string[]>([])
-
-const oldRemovedCoverImage = ref<string | null>(null)
-const oldRemovedDetailedImages = ref<string[]>([])
 
 function handleSelectCoverImage(e: any) {
   // Revoking old cover image URL
@@ -369,10 +386,10 @@ const handleSubmitEditBook = async (event: any) => {
     formData.append('publishedDate', formValues.publishedDate.toISOString())
     formData.append('publisher', formValues.publisher)
     if (oldRemovedCoverImage.value) {
-      formData.append('oldRemovedCoverImage', oldRemovedCoverImage.value)
+      formData.append('oldRemovedCoverImage', oldRemovedCoverImage.value.publicId)
     }
-    oldRemovedDetailedImages.value.forEach((url, index) => {
-      formData.append('oldRemovedDetailedImages', url)
+    oldRemovedDetailedImages.value.forEach((image, index) => {
+      formData.append('oldRemovedDetailedImages', image.publicId)
     })
 
     if (selectedCoverImage.value) {
@@ -396,6 +413,14 @@ const handleSubmitEditBook = async (event: any) => {
 
 const handleOpenDeleteConfirm = () => {
   deleteConfirmVisible.value = true
+}
+
+const handleOpenCreateBook = () => {
+  // reset selected book
+  previewCoverUrl.value = null
+  previewDetailedUrls.value = []
+
+  addBookVisible.value = true
 }
 
 const handleToggleBookStatus = async () => {
@@ -440,7 +465,8 @@ const handleRemoveOldDetailedImage = (index: number) => {
 
 const handleRemoveUploadedDetailedImage = (
   index: number,
-  removeFileCallback: (file: File) => void,
+  // removeFileCallback: (file: File) => void,
+  removeFileCallback: (index: number) => void,
 ) => {
   const removedImage = previewDetailedUrls.value?.[index] || null
   if (removedImage) {
@@ -448,7 +474,8 @@ const handleRemoveUploadedDetailedImage = (
 
     previewDetailedUrls.value?.splice(index, 1)
     selectedDetailedImages.value?.splice(index, 1)
-    removeFileCallback(selectedDetailedImages.value[index])
+    // removeFileCallback(selectedDetailedImages.value[index])
+    removeFileCallback(index)
   }
   console.log('Remove new detailed image at index:', index)
 }
@@ -489,7 +516,7 @@ onBeforeUnmount(() => {
         </IconField>
 
         <Button
-          @click="addBookVisible = true"
+          @click="handleOpenCreateBook()"
           icon="pi pi-plus"
           label="Add Book"
           class="bg-(--my-primary-color)! border-none! hover:opacity-85! text-(--my-secondary-color)!"
@@ -542,7 +569,7 @@ onBeforeUnmount(() => {
         <div v-if="isLoadingData" class="skeleton h-16 w-10 rounded-xs"></div>
         <Image
           v-if="!isLoadingData"
-          :src="slotProps.data.coverImage.url"
+          :src="slotProps.data.coverImage?.url"
           alt="Cover Image"
           width="30"
           preview
@@ -1071,7 +1098,7 @@ onBeforeUnmount(() => {
                 v-if="previewCoverUrl || oldCoverImage"
                 :src="
                   oldCoverImage !== null
-                    ? oldCoverImage
+                    ? oldCoverImage.url
                     : previewCoverUrl !== null
                       ? previewCoverUrl
                       : ''
@@ -1084,7 +1111,7 @@ onBeforeUnmount(() => {
                   <img
                     :src="
                       oldCoverImage !== null
-                        ? oldCoverImage
+                        ? oldCoverImage?.url
                         : previewCoverUrl !== null
                           ? previewCoverUrl
                           : ''
@@ -1155,9 +1182,9 @@ onBeforeUnmount(() => {
                 v-if="oldDetailedImages.length > 0 || previewDetailedUrls.length > 0"
                 class="grid grid-cols-2 gap-2.5 mb-4"
               >
-                <div class="relative" v-for="(url, index) in oldDetailedImages" :key="index">
+                <div class="relative" v-for="(image, index) in oldDetailedImages" :key="index">
                   <Image
-                    :src="url"
+                    :src="image.url"
                     alt="Detailed Image"
                     preview
                     class="aspect-[150/200] rounded-xs overflow-hidden w-full!"
