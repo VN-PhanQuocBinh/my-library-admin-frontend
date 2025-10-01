@@ -210,8 +210,10 @@ const oldRemovedDetailedImages = ref<string[]>([])
 
 function handleSelectCoverImage(e: any) {
   // Revoking old cover image URL
-  oldRemovedCoverImage.value = oldCoverImage.value
-  oldCoverImage.value = null
+  if (oldCoverImage.value) {
+    oldRemovedCoverImage.value = oldCoverImage.value
+    oldCoverImage.value = null
+  }
 
   // Setting new selected file
   const file = e.files[0]
@@ -224,21 +226,30 @@ function handleSelectCoverImage(e: any) {
 function handleSelectDetailedImages(e: any) {
   // Append new selected files
   const files = e.files
+  console.log('Selected detailed images:', files)
   if (files && files.length > 0) {
     selectedDetailedImages.value = Array.from(files)
 
     const newImages = selectedDetailedImages.value.map((file) => URL.createObjectURL(file))
 
-    previewDetailedUrls.value = [...previewDetailedUrls.value, ...newImages]
+    previewDetailedUrls.value = newImages
   }
 }
 
 function handleClearCoverImage() {
+  if (oldCoverImage.value) {
+    oldRemovedCoverImage.value = oldCoverImage.value
+    oldCoverImage.value = null
+  }
+
   previewCoverUrl.value = null
 }
 
 function handleClearDetailedImages() {
-  oldCoverImage.value = null
+  if (oldDetailedImages.value.length > 0) {
+    oldRemovedDetailedImages.value.push(...oldDetailedImages.value)
+    oldDetailedImages.value = []
+  }
 
   previewDetailedUrls.value.forEach((url) => URL.revokeObjectURL(url))
   previewDetailedUrls.value = []
@@ -338,16 +349,17 @@ const handleSubmit = async (event: any) => {
 }
 
 const handleSubmitEditBook = async (event: any) => {
-  console.log(oldRemovedCoverImage.value, oldRemovedDetailedImages.value)
-  return
+  console.log('Removed Cover Image:', oldRemovedCoverImage.value)
+  console.log('Removed Detailed Images:', oldRemovedDetailedImages.value)
+  console.log('Selected Cover Image:', selectedCoverImage.value)
+  console.log('Selected Detailed Images:', selectedDetailedImages.value)
+  // return
 
   if (event.valid) {
     const formData = new FormData()
 
     const { values: formValues } = event
 
-    console.log('Form Values:', formValues)
-    return
     formData.append('name', formValues.name)
     formData.append('description', formValues.description)
     formData.append('author', formValues.author)
@@ -356,6 +368,12 @@ const handleSubmitEditBook = async (event: any) => {
     formData.append('quantity', formValues.quantity.toString())
     formData.append('publishedDate', formValues.publishedDate.toISOString())
     formData.append('publisher', formValues.publisher)
+    if (oldRemovedCoverImage.value) {
+      formData.append('oldRemovedCoverImage', oldRemovedCoverImage.value)
+    }
+    oldRemovedDetailedImages.value.forEach((url, index) => {
+      formData.append('oldRemovedDetailedImages', url)
+    })
 
     if (selectedCoverImage.value) {
       formData.append('coverImage', selectedCoverImage.value)
@@ -365,7 +383,7 @@ const handleSubmitEditBook = async (event: any) => {
       formData.append('detailedImages', file)
     })
 
-    await handleUpdateBook(selectedBook.value._id, formData)
+    await handleUpdateBook(selectedBook.value?._id, formData)
   } else {
     toast.add({
       severity: 'error',
@@ -524,7 +542,7 @@ onBeforeUnmount(() => {
         <div v-if="isLoadingData" class="skeleton h-16 w-10 rounded-xs"></div>
         <Image
           v-if="!isLoadingData"
-          :src="slotProps.data.coverImage"
+          :src="slotProps.data.coverImage.url"
           alt="Cover Image"
           width="30"
           preview
@@ -1080,7 +1098,10 @@ onBeforeUnmount(() => {
 
             <!-- Empty -->
             <template #empty>
-              <div v-if="previewCoverUrl?.length === 0" class="text-center">
+              <div
+                v-if="previewCoverUrl?.length === 0 || oldCoverImage === null"
+                class="text-center"
+              >
                 <div class="flex items-center justify-center flex-col">
                   <i
                     class="pi pi-cloud-upload !border-2 border-(--my-text-secondary-color)! border-dashed !rounded-full !p-8 !text-4xl !text-(--my-text-secondary-color)"
