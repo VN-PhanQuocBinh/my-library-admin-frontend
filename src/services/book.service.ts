@@ -1,11 +1,9 @@
 import apiClient from './api.service'
 import { BOOK_ENDPOINTS } from '@/config/api-endpoints'
 import type { BookGenre } from '@/types/book'
+import type { ApiParams } from '@/types/common'
 
-interface getBookParams {
-  page?: number
-  limit?: number
-  query?: string
+interface getBookParams extends ApiParams {
   publisher?: string
   category?: string
   status?: boolean

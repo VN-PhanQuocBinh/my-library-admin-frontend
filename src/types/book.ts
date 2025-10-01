@@ -1,3 +1,15 @@
+export interface ImageInfo {
+  url: string
+  publicId: string
+  folder?: string
+  originalName?: string
+  size?: number
+  format?: string
+  width?: number
+  height?: number
+  uploadedAt?: Date
+}
+
 export interface Publisher {
   _id: string
   name: string
@@ -46,7 +58,7 @@ export interface Book {
   language: string
   publishedDate: string
   status: boolean
-  coverImage: string
-  detailedImages: string[]
+  coverImage: ImageInfo
+  detailedImages: ImageInfo[]
   slug: string
 }
