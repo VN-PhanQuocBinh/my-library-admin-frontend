@@ -47,8 +47,6 @@ const AdminSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters long').optional(),
 })
 
-
-
 type AdminFormType = z.infer<typeof AdminSchema>
 
 // State
