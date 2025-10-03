@@ -19,15 +19,15 @@ export const useAuthStore = defineStore('auth', () => {
   async function loginUser(payload: { email: string; password: string }) {
     try {
       const response = await login(payload)
-      const { accessToken, user } = response.data
-      if (accessToken && user) {
+      const { accessToken, user: _user } = response.data
+      if (accessToken && _user) {
         // Store token and user in localStorage
         localStorage.setItem('token', accessToken)
-        localStorage.setItem('user', JSON.stringify(user))
+        localStorage.setItem('user', JSON.stringify(_user))
 
         // Update the store state
         token.value = accessToken
-        user.value = user
+        user.value = _user
 
         // navigate to dashboard
         await router.push('/dashboard/home')
