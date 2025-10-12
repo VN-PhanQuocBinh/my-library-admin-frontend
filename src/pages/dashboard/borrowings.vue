@@ -30,6 +30,8 @@ import {
 } from '@/services/borrowing.service.ts'
 import { getAllUsers } from '@/services/user.service'
 import { fetchBooks as getAllBooks } from '@/services/book.service.ts'
+import { action } from '@primeuix/themes/aura/image'
+import { tr } from 'zod/locales'
 
 // Define schema for borrowing registration
 const BorrowingRegistrationSchema = z.object({
@@ -43,22 +45,25 @@ const BorrowingRegistrationSchema = z.object({
 
 type BorrowingRegistrationType = z.infer<typeof BorrowingRegistrationSchema>
 
+type BorrowingStatus = 'pending' | 'approved' | 'rejected' | 'returned' | 'overdue' | 'lost'
+
 interface BorrowingRegistration {
   _id: string
   userId: {
     _id: string
-    name: string
+    firstname: string
+    lastname: string
     email: string
   }
   bookId: {
     _id: string
-    title: string
+    name: string
     author: string
   }
   borrowDate: string
   returnDate?: string
   maxBorrowDays: number
-  status: 'pending' | 'approved' | 'rejected' | 'returned'
+  status: BorrowingStatus
 }
 
 interface User {
@@ -75,6 +80,34 @@ interface Book {
   author: string
   isAvailable: boolean
 }
+
+interface ActionSelection {
+  label: string
+  icon: string
+  value: BorrowingStatus
+}
+
+const actionSelection: ActionSelection[] = [
+  { label: 'Approve', icon: 'pi pi-check', value: 'approved' },
+  { label: 'Reject', icon: 'pi pi-times', value: 'rejected' },
+  { label: 'Pending', icon: 'pi pi-clock', value: 'pending' },
+  {
+    label: 'Overdue',
+    icon: 'pi pi-exclamation-triangle',
+    value: 'overdue',
+  },
+  { label: 'Lost', icon: 'pi pi-book', value: 'lost' },
+  { label: 'Return', icon: 'pi pi-refresh', value: 'returned' },
+]
+
+const actionRules = new Map<`${BorrowingStatus}-${BorrowingStatus}`, boolean>()
+  .set('pending-approved', true)
+  .set('pending-rejected', true)
+  .set('approved-returned', true)
+  .set('approved-overdue', true)
+  .set('approved-lost', true)
+  .set('overdue-returned', true)
+  .set('overdue-lost', true)
 
 // State variables
 const resolver = zodResolver(BorrowingRegistrationSchema)
@@ -99,7 +132,8 @@ const isSubmitting = ref(false)
 
 const addBorrowingVisible = ref<boolean>(false)
 const selectedRegistration = ref<BorrowingRegistration | undefined>(undefined)
-const actionType = ref<'approve' | 'reject' | 'pending'>('approve')
+const actionsOfSelectedRegistration = ref<ActionSelection[]>([])
+const actionType = ref<BorrowingStatus>('approved')
 
 const searchQuery = ref('')
 const statusFilter = ref('')
@@ -118,6 +152,8 @@ const statusOptions = [
   { label: 'Approved', value: 'approved' },
   { label: 'Rejected', value: 'rejected' },
   { label: 'Returned', value: 'returned' },
+  { label: 'Overdue', value: 'overdue' },
+  { label: 'Lost', value: 'lost' },
 ]
 
 // Fetch borrowing registrations from the API
@@ -212,6 +248,9 @@ onMounted(() => {
 
 const toggleOpen = (event: any, selectedInfo: BorrowingRegistration) => {
   selectedRegistration.value = selectedInfo
+  actionsOfSelectedRegistration.value = actionSelection.filter((action) =>
+    actionRules.has(`${selectedInfo.status}-${action.value}`),
+  )
   open.value?.toggle(event)
 }
 
@@ -257,8 +296,7 @@ const handleSubmit = async (event: any) => {
   }
 }
 
-const handleStatusAction = (action: 'approve' | 'reject' | 'pending') => {
-  console.log('Action:', action)
+const handleStatusAction = (action: BorrowingStatus) => {
   actionType.value = action
   isOpenStatusConfirm.value = true
 }
@@ -266,14 +304,8 @@ const handleStatusAction = (action: 'approve' | 'reject' | 'pending') => {
 const confirmStatusChange = async () => {
   try {
     isSubmitting.value = true
-    const status =
-      actionType.value === 'approve'
-        ? 'approved'
-        : actionType.value === 'reject'
-          ? 'rejected'
-          : 'pending'
 
-    await updateBorrowingStatus(selectedRegistration.value?._id as string, status)
+    await updateBorrowingStatus(selectedRegistration.value?._id as string, actionType.value)
     toast.add({
       severity: 'success',
       summary: 'Success',
@@ -281,12 +313,12 @@ const confirmStatusChange = async () => {
       life: 3000,
     })
     await fetchBorrowingRegistrations()
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating status:', error)
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: `Failed to ${actionType.value} borrowing registration`,
+      detail: error.response.data.message || `Failed to ${actionType.value} borrowing registration`,
       life: 3000,
     })
   } finally {
@@ -459,7 +491,25 @@ const calculateDaysBorrowed = (borrowDate: string) => {
 
   <Popover ref="open" placement="top" class="min-w-[120px]">
     <div class="flex flex-col">
-      <button
+      <template v-if="actionsOfSelectedRegistration.length > 0">
+        <button
+          v-for="action in actionsOfSelectedRegistration"
+          :key="action.value"
+          @click="handleStatusAction(action.value)"
+          class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
+        >
+          <i :class="action.icon"></i>
+          <span>{{ action.label }}</span>
+        </button>
+      </template>
+
+      <template v-else>
+        <div class="text-(--my-text-secondary-color) text-center p-3">
+          No actions available for this status.
+        </div>
+      </template>
+
+      <!-- <button
         v-if="selectedRegistration?.status !== 'pending'"
         @click="handleStatusAction('pending')"
         class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
@@ -469,7 +519,7 @@ const calculateDaysBorrowed = (borrowDate: string) => {
       </button>
       <button
         v-if="selectedRegistration?.status !== 'approved'"
-        @click="handleStatusAction('approve')"
+        @click="handleStatusAction('approved')"
         class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
       >
         <i class="pi pi-check"></i>
@@ -477,12 +527,12 @@ const calculateDaysBorrowed = (borrowDate: string) => {
       </button>
       <button
         v-if="selectedRegistration?.status !== 'rejected'"
-        @click="handleStatusAction('reject')"
+        @click="handleStatusAction('rejected')"
         class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
       >
         <i class="pi pi-times"></i>
         <span>Reject</span>
-      </button>
+      </button> -->
     </div>
   </Popover>
 
@@ -598,17 +648,19 @@ const calculateDaysBorrowed = (borrowDate: string) => {
     v-model:visible="isOpenStatusConfirm"
     modal
     :draggable="false"
-    :header="`Confirm ${actionType === 'approve' ? 'Approval' : actionType === 'reject' ? 'Rejection' : 'Pending'} of Registration`"
+    :header="`Confirm ${actionType === 'approved' ? 'Approval' : actionType === 'rejected' ? 'Rejection' : 'Pending'} of Registration`"
     :style="{ minWidth: '30rem' }"
   >
     <div class="text-(--my-text-primary-color) text-center">
       Are you sure you want to {{ actionType }} the borrowing registration for
       <span class="font-semibold text-(--my-secondary-color)">
-        "{{ selectedRegistration?.bookId?.title }}"
+        "{{ selectedRegistration?.bookId?.name }}"
       </span>
       by
       <span class="font-semibold text-(--my-secondary-color)">
-        "{{ selectedRegistration?.userId?.name }}" </span
+        "{{
+          selectedRegistration?.userId?.firstname + ' ' + selectedRegistration?.userId?.lastname
+        }}" </span
       >?
     </div>
     <template #footer>
@@ -622,14 +674,14 @@ const calculateDaysBorrowed = (borrowDate: string) => {
         <Button
           type="button"
           :label="
-            actionType === 'approve'
+            actionType === 'approved'
               ? 'Approve'
-              : actionType === 'reject'
+              : actionType === 'rejected'
                 ? 'Reject'
                 : 'Set to Pending'
           "
           :severity="
-            actionType === 'approve' ? 'success' : actionType === 'reject' ? 'danger' : 'warn'
+            actionType === 'approved' ? 'success' : actionType === 'rejected' ? 'danger' : 'warn'
           "
           class="text-white! border-none!"
           :disabled="isSubmitting"
