@@ -18,7 +18,7 @@ import { Button, ButtonGroup } from 'primevue'
       </nav>
 
       <div class="flex flex-row gap-2">
-         <router-link to="/login">
+         <router-link to="/">
             <Button label="Login" />
          </router-link>
 

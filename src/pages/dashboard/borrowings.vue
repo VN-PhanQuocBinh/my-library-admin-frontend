@@ -508,31 +508,6 @@ const calculateDaysBorrowed = (borrowDate: string) => {
           No actions available for this status.
         </div>
       </template>
-
-      <!-- <button
-        v-if="selectedRegistration?.status !== 'pending'"
-        @click="handleStatusAction('pending')"
-        class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
-      >
-        <i class="pi pi-clock"></i>
-        <span>Pending</span>
-      </button>
-      <button
-        v-if="selectedRegistration?.status !== 'approved'"
-        @click="handleStatusAction('approved')"
-        class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
-      >
-        <i class="pi pi-check"></i>
-        <span>Approve</span>
-      </button>
-      <button
-        v-if="selectedRegistration?.status !== 'rejected'"
-        @click="handleStatusAction('rejected')"
-        class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
-      >
-        <i class="pi pi-times"></i>
-        <span>Reject</span>
-      </button> -->
     </div>
   </Popover>
 

@@ -296,10 +296,10 @@ const handleCreateBook = async (data: FormData) => {
       life: 3000,
     })
     await fetchBooksWithQuery()
+    addBookVisible.value = false
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to create book', life: 3000 })
   } finally {
-    addBookVisible.value = false
     isSubmitting.value = false
   }
 }
@@ -903,6 +903,7 @@ onBeforeUnmount(() => {
               </Message>
             </FormField>
 
+            <!-- Author -->
             <FormField v-slot="$field" name="author" class="flex flex-col">
               <label for="author" class="font-semibold mb-1">Author</label>
               <InputText id="author" size="small" class="w-full" placeholder="Select an author" />
@@ -911,7 +912,7 @@ onBeforeUnmount(() => {
               </Message>
             </FormField>
 
-            <!-- Author -->
+            <!-- Genre -->
             <FormField v-slot="$field" name="genre" class="flex flex-col">
               <label for="genre" class="font-semibold mb-1">Genre</label>
               <Select
@@ -919,18 +920,7 @@ onBeforeUnmount(() => {
                 size="small"
                 class="w-full"
                 placeholder="Select a Genre"
-                :options="[
-                  'fiction',
-                  'nonFiction',
-                  'scienceFiction',
-                  'fantasy',
-                  'mystery',
-                  'biography',
-                  'history',
-                  'poetry',
-                  'self-help',
-                  'business',
-                ]"
+                :options="BOOK_GENRES"
               />
               <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
                 {{ $field.error?.message }}
@@ -1300,7 +1290,7 @@ onBeforeUnmount(() => {
               </Message>
             </FormField>
 
-            <!-- Author -->
+            <!-- Genre -->
             <FormField v-slot="$field" name="genre" class="flex flex-col">
               <label for="genre" class="font-semibold mb-1">Genre</label>
               <Select

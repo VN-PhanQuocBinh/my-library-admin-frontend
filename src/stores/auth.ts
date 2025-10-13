@@ -2,7 +2,7 @@ import { useRouter } from 'vue-router'
 
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import { login, register } from '@/services/auth.service'
+import { login, register, getProfile as _getProfile } from '@/services/auth.service'
 import type { Admin } from '@/types/admin'
 
 import { type RegisterType } from '@/types/auth-schema'
@@ -14,20 +14,35 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token'))
   const isAuthenticated = computed(() => !!token.value)
 
-  console.log(user.value)
+  async function verifyAuthentication() {
+    if (user.value && token.value) {
+      try {
+        await getProfile()
+        console.log('User is authenticated')
+      } catch (error) {
+        console.error('Token is invalid or expired')
+        clearAuthData()
+      }
+    }
+  }
+
+  function assignUser(userData: Admin, tokenData?: string) {
+    // Store token and user in localStorage
+    user.value = userData
+    localStorage.setItem('user', JSON.stringify(userData))
+
+    if (tokenData) {
+      token.value = tokenData
+      localStorage.setItem('token', tokenData)
+    }
+  }
 
   async function loginUser(payload: { email: string; password: string }) {
     try {
       const response = await login(payload)
       const { accessToken, user: _user } = response.data
       if (accessToken && _user) {
-        // Store token and user in localStorage
-        localStorage.setItem('token', accessToken)
-        localStorage.setItem('user', JSON.stringify(_user))
-
-        // Update the store state
-        token.value = accessToken
-        user.value = _user
+        assignUser(_user, accessToken)
 
         // navigate to dashboard
         await router.push('/dashboard/home')
@@ -50,6 +65,16 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function getProfile() {
+    try {
+      const response = await _getProfile()
+      assignUser(response.data.user)
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
   function clearAuthData() {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
@@ -63,5 +88,5 @@ export const useAuthStore = defineStore('auth', () => {
     clearAuthData()
   }
 
-  return { user, token, isAuthenticated, loginUser, registerUser, logout }
+  return { user, token, isAuthenticated, loginUser, registerUser, logout, verifyAuthentication }
 })

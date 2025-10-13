@@ -17,29 +17,13 @@ export interface Publisher {
   __v: number
 }
 
-export type BookGenre =
-  | 'fiction'
-  | 'nonFiction'
-  | 'scienceFiction'
-  | 'fantasy'
-  | 'mystery'
-  | 'biography'
-  | 'history'
-  | 'poetry'
-  | 'self-help'
-  | 'business'
+export type BookGenre = 'Tiểu thuyết' | 'Marketing - Bán hàng' | 'Kỹ năng sống' | 'Tâm lý'
 
 export const BOOK_GENRES: BookGenre[] = [
-  'fiction',
-  'nonFiction',
-  'scienceFiction',
-  'fantasy',
-  'mystery',
-  'biography',
-  'history',
-  'poetry',
-  'self-help',
-  'business',
+  'Tiểu thuyết',
+  'Marketing - Bán hàng',
+  'Kỹ năng sống',
+  'Tâm lý',
 ]
 
 export interface Book {
