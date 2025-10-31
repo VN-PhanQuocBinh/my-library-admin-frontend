@@ -120,7 +120,7 @@ const resetState = () => {
   oldRemovedDetailedImages.value = []
 }
 
-const fetchBooksWithQuery = async () => {
+const fetchBooksWithQuery = async (page = 0, limit = 10) => {
   try {
     isLoadingData.value = true
 
@@ -144,7 +144,11 @@ const fetchBooksWithQuery = async () => {
       queries['status'] = selectedStatus.value
     }
 
-    const booksResponse = await fetchBooks(queries)
+    const booksResponse = await fetchBooks({
+      page,
+      limit,
+      ...queries,
+    })
     books.value = booksResponse.data.list
     pagination.value = booksResponse.data.pagination
   } catch (error) {
@@ -480,6 +484,12 @@ const handleRemoveUploadedDetailedImage = (
   console.log('Remove new detailed image at index:', index)
 }
 
+const onPageChange = (event: any) => {
+  pagination.value.page = event.page
+  pagination.value.limit = event.rows
+  fetchBooksWithQuery(event.page, event.rows)
+}
+
 onBeforeUnmount(() => {
   if (previewCoverUrl.value) URL.revokeObjectURL(previewCoverUrl.value)
   if (previewDetailedUrls.value.length > 0) {
@@ -497,6 +507,9 @@ onBeforeUnmount(() => {
     :paginator="true"
     :rows="pagination.limit"
     :totalRecords="pagination.total"
+    :first="pagination.page * pagination.limit"
+    :lazy="true"
+    @page="onPageChange"
   >
     <template #empty>
       <div class="text-(--my-text-secondary-color) text-center">No books found.</div>
