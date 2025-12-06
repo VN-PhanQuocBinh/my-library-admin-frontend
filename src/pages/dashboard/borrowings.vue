@@ -30,17 +30,15 @@ import {
 } from '@/services/borrowing.service.ts'
 import { getAllUsers } from '@/services/user.service'
 import { fetchBooks as getAllBooks } from '@/services/book.service.ts'
-import { action } from '@primeuix/themes/aura/image'
-import { tr } from 'zod/locales'
 
 // Define schema for borrowing registration
 const BorrowingRegistrationSchema = z.object({
-  userId: z.string().min(1, 'Please select a user'),
-  bookId: z.string().min(1, 'Please select a book'),
+  userId: z.string().min(1, 'Vui lòng chọn người dùng'),
+  bookId: z.string().min(1, 'Vui lòng chọn sách'),
   maxBorrowDays: z
     .number()
-    .min(1, 'Max borrow days must be at least 1')
-    .max(365, 'Max borrow days cannot exceed 365'),
+    .min(1, 'Số ngày mượn tối thiểu là 1')
+    .max(365, 'Số ngày mượn tối đa không được vượt quá 365'),
 })
 
 type BorrowingRegistrationType = z.infer<typeof BorrowingRegistrationSchema>
@@ -88,16 +86,16 @@ interface ActionSelection {
 }
 
 const actionSelection: ActionSelection[] = [
-  { label: 'Approve', icon: 'pi pi-check', value: 'approved' },
-  { label: 'Reject', icon: 'pi pi-times', value: 'rejected' },
-  { label: 'Pending', icon: 'pi pi-clock', value: 'pending' },
+  { label: 'Phê duyệt', icon: 'pi pi-check', value: 'approved' },
+  { label: 'Từ chối', icon: 'pi pi-times', value: 'rejected' },
+  { label: 'Đang chờ', icon: 'pi pi-clock', value: 'pending' },
   {
-    label: 'Overdue',
+    label: 'Quá hạn',
     icon: 'pi pi-exclamation-triangle',
     value: 'overdue',
   },
-  { label: 'Lost', icon: 'pi pi-book', value: 'lost' },
-  { label: 'Return', icon: 'pi pi-refresh', value: 'returned' },
+  { label: 'Mất', icon: 'pi pi-book', value: 'lost' },
+  { label: 'Đã trả', icon: 'pi pi-refresh', value: 'returned' },
 ]
 
 const actionRules = new Map<`${BorrowingStatus}-${BorrowingStatus}`, boolean>()
@@ -148,12 +146,12 @@ const pagination = ref<{ page: number; limit: number; total: number; totalPages:
 
 // Options for status filter
 const statusOptions = [
-  { label: 'Pending', value: 'pending' },
-  { label: 'Approved', value: 'approved' },
-  { label: 'Rejected', value: 'rejected' },
-  { label: 'Returned', value: 'returned' },
-  { label: 'Overdue', value: 'overdue' },
-  { label: 'Lost', value: 'lost' },
+  { label: 'Đang chờ', value: 'pending' },
+  { label: 'Phê duyệt', value: 'approved' },
+  { label: 'Từ chối', value: 'rejected' },
+  { label: 'Đã trả', value: 'returned' },
+  { label: 'Quá hạn', value: 'overdue' },
+  { label: 'Mất', value: 'lost' },
 ]
 
 // Fetch borrowing registrations from the API
@@ -181,7 +179,7 @@ const fetchBorrowingRegistrations = async (page = 0, limit = 10) => {
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: error?.response?.data?.message || 'Failed to fetch borrowing registrations',
+      detail: error?.response?.data?.message || 'Không thể lấy danh sách đăng ký mượn sách',
       life: 3000,
     })
   } finally {
@@ -261,13 +259,12 @@ const handleCreateBorrowingRegistration = async (data: BorrowingRegistrationType
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Borrowing registration created successfully',
+      detail: 'Đăng ký mượn sách thành công',
       life: 3000,
     })
     await fetchBorrowingRegistrations()
   } catch (error: any) {
-    const detailMessage =
-      error?.response?.data?.message || 'Failed to create borrowing registration'
+    const detailMessage = error?.response?.data?.message || 'Không thể tạo đăng ký mượn sách'
 
     toast.add({
       severity: 'error',
@@ -290,7 +287,7 @@ const handleSubmit = async (event: any) => {
     toast.add({
       severity: 'error',
       summary: 'Validation Error',
-      detail: 'Please correct the errors in the form.',
+      detail: 'Vui lòng kiểm tra lại các trường thông tin',
       life: 3000,
     })
   }
@@ -309,7 +306,7 @@ const confirmStatusChange = async () => {
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: `Borrowing registration ${actionType.value}d successfully`,
+      detail: `Đăng ký mượn sách ${actionType.value} thành công`,
       life: 3000,
     })
     await fetchBorrowingRegistrations()
@@ -318,7 +315,7 @@ const confirmStatusChange = async () => {
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: error.response.data.message || `Failed to ${actionType.value} borrowing registration`,
+      detail: error.response.data.message || `Không thể ${actionType.value} đăng ký mượn sách`,
       life: 3000,
     })
   } finally {
@@ -366,22 +363,20 @@ const calculateDaysBorrowed = (borrowDate: string) => {
   >
     <template #empty>
       <div class="text-(--my-text-secondary-color) text-center">
-        No borrowing registrations found.
+        Không tìm thấy đăng ký mượn sách nào.
       </div>
     </template>
 
     <template #header>
       <div class="flex flex-row items-center justify-between gap-2.5">
-        <h2 class="flex-1 text-lg font-semibold text-(--my-secondary-color)">
-          Borrowing Registrations
-        </h2>
+        <h2 class="flex-1 text-lg font-semibold text-(--my-secondary-color)">Đăng ký mượn sách</h2>
 
         <div class="flex flex-row items-center gap-2.5">
           <IconField class="bg-white!">
             <InputIcon class="pi pi-search sp" />
             <InputText
               v-model="searchQuery"
-              placeholder="Search by user or book name..."
+              placeholder="Tìm kiếm theo tên người dùng hoặc tên sách..."
               class="focus:border-(--my-primary-color)!"
             />
           </IconField>
@@ -391,7 +386,7 @@ const calculateDaysBorrowed = (borrowDate: string) => {
             :options="statusOptions"
             optionLabel="label"
             optionValue="value"
-            placeholder="Filter by status"
+            placeholder="Lọc theo trạng thái"
             class="min-w-[150px]"
             :showClear="true"
           />
@@ -399,14 +394,14 @@ const calculateDaysBorrowed = (borrowDate: string) => {
           <Button
             @click="addBorrowingVisible = true"
             icon="pi pi-plus"
-            label="New Registration"
+            label="Đăng ký mới"
             class="bg-(--my-primary-color)! border-none! hover:opacity-85! text-(--my-secondary-color)!"
           />
         </div>
       </div>
     </template>
 
-    <Column field="userId.name" header="Borrower Name">
+    <Column field="userId.name" header="Tên người mượn">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-32"></div>
         <span v-else class="">{{
@@ -415,14 +410,14 @@ const calculateDaysBorrowed = (borrowDate: string) => {
       </template>
     </Column>
 
-    <Column field="bookId.title" header="Book Title">
+    <Column field="bookId.title" header="Tiêu đề sách">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-48"></div>
         <span v-else class="text-(--my-text-primary-color)">{{ slotProps.data.bookId?.name }}</span>
       </template>
     </Column>
 
-    <Column field="borrowDate" header="Borrow Date">
+    <Column field="borrowDate" header="Ngày mượn">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
         <span v-else class="text-(--my-text-primary-color)">
@@ -431,7 +426,7 @@ const calculateDaysBorrowed = (borrowDate: string) => {
       </template>
     </Column>
 
-    <Column field="status" header="Status">
+    <Column field="status" header="Trạng thái">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-20"></div>
         <Tag
@@ -443,7 +438,7 @@ const calculateDaysBorrowed = (borrowDate: string) => {
       </template>
     </Column>
 
-    <Column field="returnDate" header="Return Date">
+    <Column field="returnDate" header="Ngày trả">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
         <span v-else class="text-(--my-text-primary-color)">
@@ -456,18 +451,18 @@ const calculateDaysBorrowed = (borrowDate: string) => {
       </template>
     </Column>
 
-    <Column field="maxBorrowDays" header="Max Days">
+    <Column field="maxBorrowDays" header="Số ngày tối đa mượn">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-16"></div>
         <span v-else class="text-(--my-text-primary-color)">
-          {{ slotProps.data.maxBorrowDays }} days
+          {{ slotProps.data.maxBorrowDays }} ngày
         </span>
       </template>
     </Column>
 
     <Column>
       <template #header>
-        <div class="text-center w-full font-semibold">Actions</div>
+        <div class="text-center w-full font-semibold">Hành động</div>
       </template>
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
@@ -483,9 +478,9 @@ const calculateDaysBorrowed = (borrowDate: string) => {
     </Column>
 
     <template #footer>
-      Showing {{ pagination.page * pagination.limit + 1 }} to
+      Hiển thị {{ pagination.page * pagination.limit + 1 }} đến
       {{ Math.min((pagination.page + 1) * pagination.limit, pagination.total) }}
-      of {{ pagination.total }} registrations.
+      trong tổng số {{ pagination.total }} đăng ký.
     </template>
   </DataTable>
 
@@ -505,7 +500,7 @@ const calculateDaysBorrowed = (borrowDate: string) => {
 
       <template v-else>
         <div class="text-(--my-text-secondary-color) text-center p-3">
-          No actions available for this status.
+          Không có hành động nào khả dụng cho trạng thái này.
         </div>
       </template>
     </div>
@@ -529,7 +524,7 @@ const calculateDaysBorrowed = (borrowDate: string) => {
     >
       <!-- User Selection -->
       <FormField v-slot="$field" name="userId" class="flex flex-col" :validateOnSubmit="true">
-        <label for="userId" class="font-semibold mb-2">Select User</label>
+        <label for="userId" class="font-semibold mb-2">Chọn người dùng</label>
         <Select
           id="userId"
           :options="users"
@@ -554,7 +549,7 @@ const calculateDaysBorrowed = (borrowDate: string) => {
 
       <!-- Book Selection -->
       <FormField v-slot="$field" name="bookId" class="flex flex-col">
-        <label for="bookId" class="font-semibold mb-2">Select Book</label>
+        <label for="bookId" class="font-semibold mb-2">Chọn sách</label>
         <Select
           id="bookId"
           :options="books"
@@ -581,7 +576,7 @@ const calculateDaysBorrowed = (borrowDate: string) => {
 
       <!-- Max Borrow Days -->
       <FormField v-slot="$field" name="maxBorrowDays" class="flex flex-col">
-        <label for="maxBorrowDays" class="font-semibold mb-2">Maximum Borrow Days</label>
+        <label for="maxBorrowDays" class="font-semibold mb-2">Số ngày tối đa mượn</label>
         <InputNumber
           v-model="$field.value"
           id="maxBorrowDays"
@@ -601,7 +596,7 @@ const calculateDaysBorrowed = (borrowDate: string) => {
       <div class="flex justify-end gap-2">
         <Button
           type="button"
-          label="Cancel"
+          label="Hủy"
           severity="secondary"
           @click="addBorrowingVisible = false"
           :disabled="isSubmitting"
@@ -609,7 +604,7 @@ const calculateDaysBorrowed = (borrowDate: string) => {
         <Button
           @click="!isSubmitting && formRef?.submit()"
           type="button"
-          label="Create Registration"
+          label="Đăng ký"
           :class="`bg-(--my-secondary-color)! text-white! border-none! ${!isSubmitting ? 'hover:opacity-85!' : ''}`"
           :loading="isSubmitting"
           :disabled="isSubmitting"
@@ -623,15 +618,23 @@ const calculateDaysBorrowed = (borrowDate: string) => {
     v-model:visible="isOpenStatusConfirm"
     modal
     :draggable="false"
-    :header="`Confirm ${actionType === 'approved' ? 'Approval' : actionType === 'rejected' ? 'Rejection' : 'Pending'} of Registration`"
+    :header="`Xác nhận ${actionType === 'approved' ? 'Phê duyệt' : actionType === 'rejected' ? 'Từ chối' : 'Đặt lại thành Đang chờ'} đăng ký`"
     :style="{ minWidth: '30rem' }"
   >
     <div class="text-(--my-text-primary-color) text-center">
-      Are you sure you want to {{ actionType }} the borrowing registration for
+      Bạn có chắc chắn muốn
+      {{
+        actionType === 'approved'
+          ? 'Phê duyệt'
+          : actionType === 'rejected'
+            ? 'Từ chối'
+            : 'Đặt lại thành Đang chờ'
+      }}
+      đăng ký mượn sách cho
       <span class="font-semibold text-(--my-secondary-color)">
         "{{ selectedRegistration?.bookId?.name }}"
       </span>
-      by
+      bởi
       <span class="font-semibold text-(--my-secondary-color)">
         "{{
           selectedRegistration?.userId?.firstname + ' ' + selectedRegistration?.userId?.lastname
@@ -642,7 +645,7 @@ const calculateDaysBorrowed = (borrowDate: string) => {
       <div class="flex justify-end gap-2">
         <Button
           type="button"
-          label="Cancel"
+          label="Hủy"
           severity="secondary"
           @click="isOpenStatusConfirm = false"
         />
@@ -650,15 +653,15 @@ const calculateDaysBorrowed = (borrowDate: string) => {
           type="button"
           :label="
             actionType === 'approved'
-              ? 'Approve'
+              ? 'Phê duyệt'
               : actionType === 'rejected'
-                ? 'Reject'
-                : 'Set to Pending'
+                ? 'Từ chối'
+                : 'Đặt lại thành Đang chờ'
           "
           :severity="
             actionType === 'approved' ? 'success' : actionType === 'rejected' ? 'danger' : 'warn'
           "
-          class="text-white! border-none!"
+          class="text-white! border-none! bg-(--my-secondary-color)!"
           :disabled="isSubmitting"
           :loading="isSubmitting"
           @click="confirmStatusChange"

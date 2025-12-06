@@ -41,8 +41,8 @@ const activeIndex = ref(0)
   <div>
     <Tabs :value="'admin'">
       <TabList class="mb-4 border-b border-gray-300">
-        <Tab :value="'admin'">Admin Accounts</Tab>
-        <Tab :value="'reader'">Reader Accounts</Tab>
+        <Tab :value="'admin'">Tài khoản quản trị</Tab>
+        <Tab :value="'reader'">Tài khoản độc giả</Tab>
       </TabList>
 
       <TabPanels>

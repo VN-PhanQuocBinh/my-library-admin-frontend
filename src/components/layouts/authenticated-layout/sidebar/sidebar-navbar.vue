@@ -12,27 +12,27 @@ const props = defineProps({
 
 const items = [
   {
-    title: 'Home',
+    title: 'Trang chủ',
     path: '/dashboard/home',
     icon: 'pi-home',
   },
   {
-    title: 'User',
+    title: 'Người dùng',
     path: '/dashboard/user',
     icon: 'pi-user',
   },
   {
-    title: 'Book',
+    title: 'Sách',
     path: '/dashboard/book',
     icon: 'pi-book',
   },
   {
-    title: 'Publisher',
+    title: 'Nhà xuất bản',
     path: '/dashboard/publisher',
     icon: 'pi-building',
   },
   {
-    title: 'Borrowings',
+    title: 'Mượn sách',
     path: '/dashboard/borrowings',
     icon: 'pi-list-check',
   },

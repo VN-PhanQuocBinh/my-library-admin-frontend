@@ -86,7 +86,7 @@ const fetchPublishers = async (page = 0, limit = 10) => {
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: 'Failed to fetch publishers',
+      detail: 'Không thể lấy danh sách nhà xuất bản',
       life: 3000,
     })
   } finally {
@@ -140,7 +140,7 @@ const handleCreatePublisher = async (data: PublisherType) => {
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Publisher created successfully',
+      detail: 'Tạo nhà xuất bản thành công',
       life: 3000,
     })
     await fetchPublishers()
@@ -148,7 +148,7 @@ const handleCreatePublisher = async (data: PublisherType) => {
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: 'Failed to create publisher',
+      detail: 'Tạo nhà xuất bản thất bại',
       life: 3000,
     })
   } finally {
@@ -165,7 +165,7 @@ const handleSubmit = async (event: any) => {
     toast.add({
       severity: 'error',
       summary: 'Validation Error',
-      detail: 'Please correct the errors in the form.',
+      detail: 'Vui lòng sửa các lỗi trong biểu mẫu.',
       life: 3000,
     })
   }
@@ -183,7 +183,7 @@ const handleEdit = async (event: any) => {
       toast.add({
         severity: 'success',
         summary: 'Success',
-        detail: 'Publisher updated successfully',
+        detail: 'Cập nhật nhà xuất bản thành công',
         life: 3000,
       })
       await fetchPublishers()
@@ -192,7 +192,7 @@ const handleEdit = async (event: any) => {
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: 'Failed to update publisher',
+      detail: 'Cập nhật nhà xuất bản thất bại',
       life: 3000,
     })
   } finally {
@@ -209,7 +209,7 @@ const handleDelete = async () => {
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Publisher deleted successfully',
+      detail: 'Xóa nhà xuất bản thành công',
       life: 3000,
     })
     await fetchPublishers()
@@ -218,7 +218,7 @@ const handleDelete = async () => {
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: 'Failed to delete publisher',
+      detail: 'Xóa nhà xuất bản thất bại',
       life: 3000,
     })
   } finally {
@@ -241,18 +241,18 @@ const handleDelete = async () => {
     @page="onPageChange"
   >
     <template #empty>
-      <div class="text-(--my-text-secondary-color) text-center">No publishers found.</div>
+      <div class="text-(--my-text-secondary-color) text-center">Không tìm thấy nhà xuất bản nào.</div>
     </template>
 
     <template #header>
       <div class="flex flex-row items-center justify-between gap-2.5">
-        <h2 class="flex-1 text-lg font-semibold text-(--my-secondary-color)">Publisher List</h2>
+        <h2 class="flex-1 text-lg font-semibold text-(--my-secondary-color)">Danh sách nhà xuất bản</h2>
 
         <IconField class="bg-white!">
           <InputIcon class="pi pi-search sp" />
           <InputText
             v-model="searchQuery"
-            placeholder="Search publishers..."
+            placeholder="Tìm kiếm nhà xuất bản..."
             class="focus:border-(--my-primary-color)!"
           />
         </IconField>
@@ -260,20 +260,20 @@ const handleDelete = async () => {
         <Button
           @click="addPublisherVisible = true"
           icon="pi pi-plus"
-          label="Add Publisher"
+          label="Thêm nhà xuất bản"
           class="bg-(--my-primary-color)! border-none! hover:opacity-85! text-(--my-secondary-color)!"
         />
       </div>
     </template>
 
-    <Column field="name" header="Publisher Name">
+    <Column field="name" header="Tên nhà xuất bản">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-32"></div>
         <span v-else class="">{{ slotProps.data.name }}</span>
       </template>
     </Column>
 
-    <Column field="address" header="Address">
+    <Column field="address" header="Địa chỉ">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-48"></div>
         <span v-else class="text-(--my-text-primary-color)">{{ slotProps.data.address }}</span>
@@ -282,7 +282,7 @@ const handleDelete = async () => {
 
     <Column>
       <template #header>
-        <div class="text-center w-full font-semibold">Actions</div>
+        <div class="text-center w-full font-semibold">Hành động</div>
       </template>
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
@@ -298,9 +298,9 @@ const handleDelete = async () => {
     </Column>
 
     <template #footer>
-      Showing {{ pagination.page * pagination.limit + 1 }} to
+      Hiển thị {{ pagination.page * pagination.limit + 1 }} đến
       {{ Math.min((pagination.page + 1) * pagination.limit, pagination.total) }}
-      of {{ pagination.total }} publishers.
+      trong tổng số {{ pagination.total }} nhà xuất bản.
     </template>
   </DataTable>
 
@@ -311,14 +311,14 @@ const handleDelete = async () => {
         class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
       >
         <i class="pi pi-pen-to-square"></i>
-        <span>Edit</span>
+        <span>Chỉnh sửa</span>
       </button>
       <button
         @click="isOpenDeleteConfirm = true"
         class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
       >
         <i class="pi pi-trash"></i>
-        <span>Delete</span>
+        <span>Xóa</span>
       </button>
     </div>
   </Popover>
@@ -328,7 +328,7 @@ const handleDelete = async () => {
     v-model:visible="addPublisherVisible"
     modal
     :draggable="false"
-    header="Add Publisher"
+    header="Thêm nhà xuất bản"
     :style="{ minWidth: '30rem' }"
   >
     <Form
@@ -341,12 +341,12 @@ const handleDelete = async () => {
     >
       <!-- Publisher Name -->
       <FormField v-slot="$field" name="name" class="flex flex-col">
-        <label for="publisherName" class="font-semibold mb-2">Publisher Name</label>
+        <label for="publisherName" class="font-semibold mb-2">Tên nhà xuất bản</label>
         <InputText
           size="small"
           id="publisherName"
           class="w-full"
-          placeholder="Enter publisher name"
+          placeholder="Nhập tên nhà xuất bản"
         />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
@@ -355,12 +355,12 @@ const handleDelete = async () => {
 
       <!-- Address -->
       <FormField v-slot="$field" name="address" class="flex flex-col">
-        <label for="publisherAddress" class="font-semibold mb-2">Address</label>
+        <label for="publisherAddress" class="font-semibold mb-2">Địa chỉ</label>
         <InputText
           size="small"
           id="publisherAddress"
           class="w-full"
-          placeholder="Enter publisher address"
+          placeholder="Nhập địa chỉ nhà xuất bản"
         />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
@@ -372,7 +372,7 @@ const handleDelete = async () => {
       <div class="flex justify-end gap-2">
         <Button
           type="button"
-          label="Cancel"
+          label="Hủy"
           severity="secondary"
           @click="addPublisherVisible = false"
           :disabled="isSubmitting"
@@ -380,7 +380,7 @@ const handleDelete = async () => {
         <Button
           @click="!isSubmitting && formRef?.submit()"
           type="button"
-          label="Add Publisher"
+          label="Thêm nhà xuất bản"
           :class="`bg-(--my-secondary-color)! text-white! border-none! ${!isSubmitting ? 'hover:opacity-85!' : ''}`"
           :loading="isSubmitting"
           :disabled="isSubmitting"
@@ -394,7 +394,7 @@ const handleDelete = async () => {
     v-model:visible="isOpenEdit"
     modal
     :draggable="false"
-    header="Edit Publisher"
+    header="Chỉnh sửa nhà xuất bản"
     :style="{ minWidth: '30rem' }"
   >
     <Form
@@ -407,12 +407,12 @@ const handleDelete = async () => {
     >
       <!-- Publisher Name -->
       <FormField v-slot="$field" name="name" class="flex flex-col">
-        <label for="publisherName" class="font-semibold mb-2">Publisher Name</label>
+        <label for="publisherName" class="font-semibold mb-2">Tên nhà xuất bản</label>
         <InputText
           size="small"
           id="publisherName"
           class="w-full"
-          placeholder="Enter publisher name"
+          placeholder="Nhập tên nhà xuất bản"
         />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
@@ -421,12 +421,12 @@ const handleDelete = async () => {
 
       <!-- Address -->
       <FormField v-slot="$field" name="address" class="flex flex-col">
-        <label for="publisherAddress" class="font-semibold mb-2">Address</label>
+        <label for="publisherAddress" class="font-semibold mb-2">Địa chỉ</label>
         <InputText
           size="small"
           id="publisherAddress"
           class="w-full"
-          placeholder="Enter publisher address"
+          placeholder="Nhập địa chỉ nhà xuất bản"
         />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
@@ -436,10 +436,10 @@ const handleDelete = async () => {
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button type="button" label="Close" severity="secondary" @click="isOpenEdit = false" />
+        <Button type="button" label="Hủy" severity="secondary" @click="isOpenEdit = false" />
         <Button
           type="submit"
-          label="Save"
+          label="Lưu thay đổi"
           class="bg-(--my-secondary-color)! text-white! border-none!"
           :disabled="isSubmitting"
           :loading="isSubmitting"
@@ -453,11 +453,11 @@ const handleDelete = async () => {
     v-model:visible="isOpenDeleteConfirm"
     modal
     :draggable="false"
-    header="Confirm Delete"
+    header="Xác nhận xóa"
     :style="{ minWidth: '30rem' }"
   >
     <div class="text-(--my-text-primary-color) text-center">
-      Are you sure you want to delete publisher
+      Bạn có chắc chắn muốn xóa nhà xuất bản
       <span class="font-semibold text-(--my-secondary-color)">
         "{{ selectedPublisher?.name }}"
       </span>
@@ -467,13 +467,13 @@ const handleDelete = async () => {
       <div class="flex justify-end gap-2">
         <Button
           type="button"
-          label="Close"
+          label="Hủy"
           severity="secondary"
           @click="isOpenDeleteConfirm = false"
         />
         <Button
           type="button"
-          label="Delete"
+          label="Xóa"
           severity="danger"
           class="text-white! border-none!"
           :disabled="isSubmitting"

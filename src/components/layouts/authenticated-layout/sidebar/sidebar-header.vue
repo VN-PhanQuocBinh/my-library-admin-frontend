@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import IconSvg from '@/components/common/icons/IconSvg.vue'
 
 defineProps({
   toggleCollapse: {
@@ -23,9 +22,5 @@ defineProps({
         @click="toggleCollapse && toggleCollapse()"
       ></i>
     </button>
-    <!-- <div :class="`flex-1 flex flex-row gap-3 items-center`">
-      <IconSvg name="logo" width="28" height="28" :class="`text-(--my-primary-color) `" />
-      <h1 v-if="!collapse" class="font-semibold text-xl">MY LIBRARY</h1>
-    </div> -->
   </div>
 </template>
