@@ -4,40 +4,45 @@ import NavItem from './nav-item.vue'
 import { defineProps } from 'vue'
 
 const props = defineProps({
-   class: {
-      type: String,
-      default: '',
-   },
+  class: {
+    type: String,
+    default: '',
+  },
 })
 
 const items = [
-   {
-      title: 'User',
-      path: '/dashboard/user',
-      icon: 'user',
-   },
-   {
-      title: 'Book',
-      path: '/dashboard/book',
-      icon: 'book',
-   },
-   {
-      title: 'Publisher',
-      path: '/dashboard/publisher',
-      icon: 'publisher',
-   },
-   {
-      title: 'Borrowing registration',
-      path: '/dashboard/borrowing-registration',
-      icon: 'borrowing-registration',
-   },
+  {
+    title: 'Trang chủ',
+    path: '/dashboard/home',
+    icon: 'pi-home',
+  },
+  {
+    title: 'Người dùng',
+    path: '/dashboard/user',
+    icon: 'pi-user',
+  },
+  {
+    title: 'Sách',
+    path: '/dashboard/book',
+    icon: 'pi-book',
+  },
+  {
+    title: 'Nhà xuất bản',
+    path: '/dashboard/publisher',
+    icon: 'pi-building',
+  },
+  {
+    title: 'Mượn sách',
+    path: '/dashboard/borrowings',
+    icon: 'pi-list-check',
+  },
 ]
 </script>
 
 <template>
-   <div :class="`flex flex-col gap-1.5 ${props.class}`">
-      <router-link v-for="value in items" :key="value.title" :to="value.path">
-         <NavItem :title="value.title" :icon="value.icon" :active="value.path === $route.path" />
-      </router-link>
-   </div>
+  <div :class="`flex flex-col gap-2.5 ${props.class}`">
+    <router-link v-for="value in items" :key="value.title" :to="value.path">
+      <NavItem :title="value.title" :icon="value.icon" :active="value.path === $route.path" />
+    </router-link>
+  </div>
 </template>

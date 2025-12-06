@@ -25,9 +25,15 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/dashboard',
     name: 'dashboard',
-    component: () => import('@/pages/dashboard/dashboard.vue'),
+    component: () => import('@/pages/dashboard/dashboard-layout.vue'),
     meta: { layout: authenticatedLayout, requireAuth: true },
     children: [
+      {
+        path: 'home',
+        name: 'home',
+        component: () => import('@/pages/dashboard/home.vue'),
+        meta: { title: 'Home' },
+      },
       {
         path: 'user',
         name: 'user',
@@ -47,9 +53,9 @@ const routes: Array<RouteRecordRaw> = [
         meta: { title: 'Publisher' },
       },
       {
-        path: 'borrowing-registration',
-        name: 'borrowing-registration',
-        component: () => import('@/pages/dashboard/borrowing-registration.vue'),
+        path: 'borrowings',
+        name: 'borrowings',
+        component: () => import('@/pages/dashboard/borrowings.vue'),
         meta: { title: 'Borrowing Registration' },
       },
     ],
@@ -69,6 +75,8 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const { isAuthenticated } = useAuthStore()
+
+  console.log(to.name, isAuthenticated)
 
   if (isAuthenticated && (to.name === 'login' || to.name === 'register')) {
     next({ name: 'dashboard' })

@@ -42,16 +42,14 @@ import { useDebounce } from '@/utils/use-debounce'
 // State variables
 const resolver = zodResolver(BookSchema)
 const inititalCreateValues = ref<BookType>({
-  name: 'Book name',
-  description: 'Book description',
+  name: 'Tên sách',
+  description: 'Mô tả sách',
   author: '',
   genre: '',
   price: 0,
   quantity: 1,
   publishedDate: new Date(),
-  // coverImage: undefined,
   publisher: '',
-  // detailedImages: [],
 })
 
 const initialEditValues = ref<BookType>({
@@ -62,9 +60,7 @@ const initialEditValues = ref<BookType>({
   price: 0,
   quantity: 1,
   publishedDate: new Date(),
-  // coverImage: undefined,
   publisher: '',
-  // detailedImages: [],
 })
 
 // Toast for notifications
@@ -120,7 +116,7 @@ const resetState = () => {
   oldRemovedDetailedImages.value = []
 }
 
-const fetchBooksWithQuery = async () => {
+const fetchBooksWithQuery = async (page = 0, limit = 10) => {
   try {
     isLoadingData.value = true
 
@@ -144,7 +140,11 @@ const fetchBooksWithQuery = async () => {
       queries['status'] = selectedStatus.value
     }
 
-    const booksResponse = await fetchBooks(queries)
+    const booksResponse = await fetchBooks({
+      page,
+      limit,
+      ...queries,
+    })
     books.value = booksResponse.data.list
     pagination.value = booksResponse.data.pagination
   } catch (error) {
@@ -292,14 +292,14 @@ const handleCreateBook = async (data: FormData) => {
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Book created successfully',
+      detail: 'Thêm sách thành công',
       life: 3000,
     })
     await fetchBooksWithQuery()
-  } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to create book', life: 3000 })
-  } finally {
     addBookVisible.value = false
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Thêm sách thất bại', life: 3000 })
+  } finally {
     isSubmitting.value = false
   }
 }
@@ -317,7 +317,7 @@ const handleUpdateBook = async (bookId: string = '', data: FormData) => {
     })
     await fetchBooksWithQuery()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to update book', life: 3000 })
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Cập nhật sách thất bại', life: 3000 })
   } finally {
     addBookVisible.value = false
     isSubmitting.value = false
@@ -359,7 +359,7 @@ const handleSubmit = async (event: any) => {
     toast.add({
       severity: 'error',
       summary: 'Validation Error',
-      detail: 'Please correct the errors in the form.',
+      detail: 'Vui lòng sửa các lỗi trong biểu mẫu.',
       life: 3000,
     })
   }
@@ -405,7 +405,7 @@ const handleSubmitEditBook = async (event: any) => {
     toast.add({
       severity: 'error',
       summary: 'Validation Error',
-      detail: 'Please correct the errors in the form.',
+      detail: 'Vui lòng sửa các lỗi trong biểu mẫu.',
       life: 3000,
     })
   }
@@ -426,10 +426,10 @@ const handleOpenCreateBook = () => {
 const handleToggleBookStatus = async () => {
   try {
     isSubmitting.value = true
-    if (!selectedBook.value) throw new Error('No book ID to delete')
+    if (!selectedBook.value) throw new Error('Không có ID sách để xóa')
     const { _id: bookId, status } = selectedBook.value
 
-    if (!bookId || status === null) throw new Error('No book ID to delete')
+    if (!bookId || status === null) throw new Error('Không có ID sách để xóa')
 
     const formData = new FormData()
     formData.append('status', (!status).toString())
@@ -443,11 +443,11 @@ const handleToggleBookStatus = async () => {
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Book updated successfully (not really, this is just a demo)',
+      detail: 'Cập nhật sách thành công (thực ra không, đây chỉ là bản demo)',
       life: 3000,
     })
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to update book', life: 3000 })
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Cập nhật sách thất bại', life: 3000 })
   } finally {
     isSubmitting.value = false
     deleteConfirmVisible.value = false
@@ -460,7 +460,7 @@ const handleRemoveOldDetailedImage = (index: number) => {
     oldRemovedDetailedImages.value.push(removedImage)
     oldDetailedImages.value?.splice(index, 1)
   }
-  console.log('Remove old detailed image at index:', oldRemovedDetailedImages?.value)
+  console.log('Xóa ảnh chi tiết cũ tại vị trí:', oldRemovedDetailedImages?.value)
 }
 
 const handleRemoveUploadedDetailedImage = (
@@ -477,7 +477,13 @@ const handleRemoveUploadedDetailedImage = (
     // removeFileCallback(selectedDetailedImages.value[index])
     removeFileCallback(index)
   }
-  console.log('Remove new detailed image at index:', index)
+  console.log('Xóa ảnh chi tiết mới tại vị trí:', index)
+}
+
+const onPageChange = (event: any) => {
+  pagination.value.page = event.page
+  pagination.value.limit = event.rows
+  fetchBooksWithQuery(event.page, event.rows)
 }
 
 onBeforeUnmount(() => {
@@ -497,20 +503,23 @@ onBeforeUnmount(() => {
     :paginator="true"
     :rows="pagination.limit"
     :totalRecords="pagination.total"
+    :first="pagination.page * pagination.limit"
+    :lazy="true"
+    @page="onPageChange"
   >
     <template #empty>
-      <div class="text-(--my-text-secondary-color) text-center">No books found.</div>
+      <div class="text-(--my-text-secondary-color) text-center">Không có sách nào.</div>
     </template>
 
     <template #header>
       <div class="flex flex-row items-center justify-between gap-2.5">
-        <h2 class="flex-1 text-lg font-semibold text-(--my-secondary-color)">Book List</h2>
+        <h2 class="flex-1 text-lg font-semibold text-(--my-secondary-color)">Danh sách sách</h2>
 
         <IconField class="bg-white!">
           <InputIcon class="pi pi-search sp" />
           <InputText
             v-model="searchQuery"
-            placeholder="Search"
+            placeholder="Tìm kiếm"
             class="focus:border-(--my-primary-color)!"
           />
         </IconField>
@@ -518,7 +527,7 @@ onBeforeUnmount(() => {
         <Button
           @click="handleOpenCreateBook()"
           icon="pi pi-plus"
-          label="Add Book"
+          label="Thêm sách"
           class="bg-(--my-primary-color)! border-none! hover:opacity-85! text-(--my-secondary-color)!"
         />
       </div>
@@ -564,7 +573,7 @@ onBeforeUnmount(() => {
       </div>
     </template>
 
-    <Column field="coverImage" header="Cover">
+    <Column field="coverImage" header="Bìa sách">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-16 w-10 rounded-xs"></div>
         <Image
@@ -578,21 +587,21 @@ onBeforeUnmount(() => {
       </template>
     </Column>
 
-    <Column field="name" header="Title">
+    <Column field="name" header="Tiêu đề">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
         <span v-else>{{ slotProps.data.name }}</span>
       </template>
     </Column>
 
-    <Column field="author" header="Author">
+    <Column field="author" header="Tác giả">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
         <span v-else>{{ slotProps.data.author }}</span>
       </template>
     </Column>
 
-    <Column field="genre" header="Genre">
+    <Column field="genre" header="Thể loại">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
         <span v-else class="capitalize">{{ slotProps.data.genre }}</span>
@@ -601,7 +610,7 @@ onBeforeUnmount(() => {
 
     <Column field="price">
       <template #header>
-        <div class="text-right w-full font-semibold">Price (đ)</div>
+        <div class="text-right w-full font-semibold">Giá (đ)</div>
       </template>
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
@@ -609,23 +618,21 @@ onBeforeUnmount(() => {
       </template>
     </Column>
 
-    <Column field="publisher" header="Publisher">
+    <Column field="publisher">
       <template #header>
-        <div class="text-right w-full font-semibold">Publisher</div>
+        <div class="text-right w-full font-semibold line-clamp-1">Nhà xuất bản</div>
       </template>
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
         <div v-else>
-          <span>{{ slotProps.data.publisher?.name || 'Unknown Publisher' }}</span>
-          <!-- <span v-if="slotProps.data.publisher">{{ slotProps.data.publisher.name }}</span>
-          <div v-else class="text-(--my-text-secondary-color) text-center">Unknown Publisher</div> -->
+          <span>{{ slotProps.data.publisher?.name || 'Không xác định' }}</span>
         </div>
       </template>
     </Column>
 
     <Column field="quantity">
       <template #header>
-        <div class="text-right w-full font-semibold">Remaining</div>
+        <div class="text-right w-full font-semibold">Còn lại</div>
       </template>
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-20"></div>
@@ -638,16 +645,16 @@ onBeforeUnmount(() => {
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
         <Tag
           v-if="!isLoadingData"
-          :value="slotProps.data.status ? 'Active' : 'Inactive'"
+          :value="slotProps.data.status ? 'Kích hoạt' : 'Vô hiệu hóa'"
           :severity="slotProps.data.status ? 'success' : 'danger'"
-          class="uppercase"
+          class="uppercase line-clamp-1"
         />
       </template>
     </Column>
 
     <Column>
       <template #header>
-        <div class="text-center w-full font-semibold">Actions</div>
+        <div class="text-center w-full font-semibold">Hành động</div>
       </template>
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
@@ -662,7 +669,7 @@ onBeforeUnmount(() => {
       </template>
     </Column>
 
-    <template #footer>In total there are {{ books ? books.length : 0 }} books.</template>
+    <template #footer>Tổng cộng có {{ books ? books.length : 0 }} cuốn sách.</template>
   </DataTable>
 
   <Popover ref="open" placement="top" class="min-w-[120px]">
@@ -672,14 +679,14 @@ onBeforeUnmount(() => {
         class="flex flex-row items-center gap-2.5 p-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
       >
         <i class="pi pi-pen-to-square"></i>
-        <span>Edit</span>
+        <span>Chỉnh sửa</span>
       </button>
       <button
         @click="handleOpenDeleteConfirm()"
         class="flex flex-row items-center gap-2.5 p-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
       >
         <i :class="`pi ${selectedBook?.status ? 'pi-trash' : 'pi-check'}`"></i>
-        <span>{{ selectedBook?.status ? 'Mark as Out of Stock' : 'Mark as Available' }}</span>
+        <span>{{ selectedBook?.status ? 'Đánh dấu không khả dụng' : 'Đánh dấu khả dụng' }}</span>
       </button>
     </div>
   </Popover>
@@ -689,7 +696,7 @@ onBeforeUnmount(() => {
     v-model:visible="addBookVisible"
     modal
     :draggable="false"
-    header="Add a book"
+    header="Thêm sách"
     maximizable
     :style="{ minWidth: '60rem' }"
     @maximize="
@@ -717,7 +724,7 @@ onBeforeUnmount(() => {
             name="coverImage"
             accept="image/*"
             :maxFileSize="1000000"
-            chooseLabel="Upload Cover"
+            chooseLabel="Tải lên bìa sách"
             class="w-full"
             @select="handleSelectCoverImage"
           >
@@ -774,7 +781,7 @@ onBeforeUnmount(() => {
                     class="pi pi-cloud-upload !border-2 border-(--my-text-secondary-color)! border-dashed !rounded-full !p-8 !text-4xl !text-(--my-text-secondary-color)"
                   />
                   <p class="mt-6 mb-0 text-(--my-text-primary-color)">
-                    Drag and drop files to here to upload.
+                    Kéo và thả tệp vào đây để tải lên.
                   </p>
                 </div>
               </div>
@@ -785,7 +792,7 @@ onBeforeUnmount(() => {
             name="detailedImages"
             accept="image/*"
             :maxFileSize="1000000"
-            chooseLabel="Upload Detailed Images"
+            chooseLabel="Tải lên hình ảnh chi tiết"
             multiple
             class="w-full"
             @select="handleSelectDetailedImages"
@@ -838,7 +845,7 @@ onBeforeUnmount(() => {
                     class="pi pi-cloud-upload !border-2 border-(--my-text-secondary-color)! border-dashed !rounded-full !p-8 !text-4xl !text-(--my-text-secondary-color)"
                   />
                   <p class="mt-6 mb-0 text-(--my-text-primary-color)">
-                    Drag and drop files to here to upload.
+                    Kéo và thả tệp vào đây để tải lên.
                   </p>
                 </div>
               </div>
@@ -850,7 +857,7 @@ onBeforeUnmount(() => {
           <div class="grid grid-cols-2 gap-4">
             <!-- Book Name -->
             <FormField v-slot="$field" name="name" class="flex flex-col">
-              <label for="title" class="font-semibold mb-1">Book name</label>
+              <label for="title" class="font-semibold mb-1">Tên sách</label>
               <InputText size="small" id="title" class="w-full" />
               <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
                 {{ $field.error?.message }}
@@ -859,7 +866,7 @@ onBeforeUnmount(() => {
 
             <!-- Price -->
             <FormField v-slot="$field" name="price" class="flex flex-col">
-              <label for="price" class="font-semibold mb-1">Price (đ)</label>
+              <label for="price" class="font-semibold mb-1">Giá (đ)</label>
               <InputNumber size="small" id="price" class="w-full" />
               <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
                 {{ $field.error?.message }}
@@ -872,12 +879,12 @@ onBeforeUnmount(() => {
               name="description"
               class="col-span-2 row-span-2 flex flex-col"
             >
-              <label for="description" class="font-semibold mb-1">Description</label>
+              <label for="description" class="font-semibold mb-1">Mô tả</label>
               <Textarea
                 size="small"
                 id="description"
                 class="w-full"
-                placeholder="Enter book description"
+                placeholder="Nhập mô tả sách"
                 rows="4"
                 :style="{ resize: 'none' }"
               />
@@ -888,12 +895,12 @@ onBeforeUnmount(() => {
 
             <!-- Publisher -->
             <FormField v-slot="$field" name="publisher" class="flex flex-col">
-              <label for="publisher" class="font-semibold mb-1">Publisher</label>
+              <label for="publisher" class="font-semibold mb-1">Nhà xuất bản</label>
               <Select
                 id="publisher"
                 size="small"
                 class="w-full"
-                placeholder="Select a publisher"
+                placeholder="Chọn nhà xuất bản"
                 :options="publishers"
                 optionLabel="name"
                 optionValue="_id"
@@ -903,34 +910,24 @@ onBeforeUnmount(() => {
               </Message>
             </FormField>
 
+            <!-- Author -->
             <FormField v-slot="$field" name="author" class="flex flex-col">
-              <label for="author" class="font-semibold mb-1">Author</label>
-              <InputText id="author" size="small" class="w-full" placeholder="Select an author" />
+              <label for="author" class="font-semibold mb-1">Tác giả</label>
+              <InputText id="author" size="small" class="w-full" placeholder="Chọn tác giả" />
               <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
                 {{ $field.error?.message }}
               </Message>
             </FormField>
 
-            <!-- Author -->
+            <!-- Genre -->
             <FormField v-slot="$field" name="genre" class="flex flex-col">
-              <label for="genre" class="font-semibold mb-1">Genre</label>
+              <label for="genre" class="font-semibold mb-1">Thể loại</label>
               <Select
                 id="genre"
                 size="small"
                 class="w-full"
-                placeholder="Select a Genre"
-                :options="[
-                  'fiction',
-                  'nonFiction',
-                  'scienceFiction',
-                  'fantasy',
-                  'mystery',
-                  'biography',
-                  'history',
-                  'poetry',
-                  'self-help',
-                  'business',
-                ]"
+                placeholder="Chọn thể loại"
+                :options="BOOK_GENRES"
               />
               <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
                 {{ $field.error?.message }}
@@ -940,7 +937,7 @@ onBeforeUnmount(() => {
             <div class="flex flex-row gap-2">
               <!-- Quantity -->
               <FormField v-slot="$field" name="quantity" class="flex-2 flex flex-col">
-                <label for="quantity" class="font-semibold mb-1">Quantity</label>
+                <label for="quantity" class="font-semibold mb-1">Số lượng</label>
                 <InputNumber
                   id="quantity"
                   mode="decimal"
@@ -957,7 +954,7 @@ onBeforeUnmount(() => {
 
               <!-- Published Date -->
               <FormField v-slot="$field" name="publishedDate" class="flex-3 flex flex-col">
-                <label for="publishedDate" class="font-semibold mb-1">Published Date</label>
+                <label for="publishedDate" class="font-semibold mb-1">Ngày xuất bản</label>
                 <DatePicker
                   size="small"
                   id="publishedDate"
@@ -980,7 +977,7 @@ onBeforeUnmount(() => {
       <div class="flex justify-end gap-2">
         <Button
           type="button"
-          label="Cancel"
+          label="Hủy"
           severity="secondary"
           @click="addBookVisible = false"
           :disabled="isSubmitting"
@@ -988,7 +985,7 @@ onBeforeUnmount(() => {
         <Button
           @click="!isSubmitting && formRef?.submit()"
           type="button"
-          label="Add Book"
+          label="Thêm sách"
           :class="`bg-(--my-secondary-color)! text-white! border-none! ${!isSubmitting ? 'hover:opacity-85!' : ''}`"
           :loading="isSubmitting"
           :disabled="isSubmitting"
@@ -1002,21 +999,21 @@ onBeforeUnmount(() => {
     v-model:visible="deleteConfirmVisible"
     modal
     :draggable="false"
-    header="Delete Book"
+    header="Xóa sách"
     class="w-96"
   >
     <div>
-      <h3 class="text-lg font-semibold mb-4">Confirm Deletion</h3>
-      <p>Are you sure you want to delete this book?</p>
+      <h3 class="text-lg font-semibold mb-4">Xác nhận xóa</h3>
+      <p>Bạn có chắc chắn muốn xóa cuốn sách này không?</p>
       <div class="flex flex-row justify-end gap-2.5 mt-4">
         <Button
           severity="secondary"
-          label="Cancel"
+          label="Hủy"
           @click="deleteConfirmVisible = false"
           :disabled="isSubmitting"
         />
         <Button
-          :label="selectedBook?.status ? 'Mark as Out of Stock' : 'Mark as Available'"
+          :label="'Xác nhận xóa'"
           :class="[
             { 'bg-red-600!': selectedBook?.status, 'bg-green-600!': !selectedBook?.status },
             'text-white! border-none! hover:opacity-85!',
@@ -1034,7 +1031,7 @@ onBeforeUnmount(() => {
     v-model:visible="editVisible"
     modal
     :draggable="false"
-    header="Edit Book"
+    header="Chỉnh sửa sách"
     maximizable
     :style="{ minWidth: '60rem' }"
     @maximize="
@@ -1134,7 +1131,7 @@ onBeforeUnmount(() => {
                     class="pi pi-cloud-upload !border-2 border-(--my-text-secondary-color)! border-dashed !rounded-full !p-8 !text-4xl !text-(--my-text-secondary-color)"
                   />
                   <p class="mt-6 mb-0 text-(--my-text-primary-color)">
-                    Drag and drop files to here to upload.
+                    Kéo và thả tệp vào đây để tải lên.
                   </p>
                 </div>
               </div>
@@ -1227,7 +1224,7 @@ onBeforeUnmount(() => {
                     class="pi pi-cloud-upload !border-2 border-(--my-text-secondary-color)! border-dashed !rounded-full !p-8 !text-4xl !text-(--my-text-secondary-color)"
                   />
                   <p class="mt-6 mb-0 text-(--my-text-primary-color)">
-                    Drag and drop files to here to upload.
+                    Kéo và thả tệp vào đây để tải lên.
                   </p>
                 </div>
               </div>
@@ -1239,7 +1236,7 @@ onBeforeUnmount(() => {
           <div class="grid grid-cols-2 gap-4">
             <!-- Book Name -->
             <FormField v-slot="$field" name="name" class="flex flex-col">
-              <label for="title" class="font-semibold mb-1">Book name</label>
+              <label for="title" class="font-semibold mb-1">Tên sách</label>
               <InputText size="small" id="title" class="w-full" />
               <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
                 {{ $field.error?.message }}
@@ -1248,7 +1245,7 @@ onBeforeUnmount(() => {
 
             <!-- Price -->
             <FormField v-slot="$field" name="price" class="flex flex-col">
-              <label for="price" class="font-semibold mb-1">Price (đ)</label>
+              <label for="price" class="font-semibold mb-1">Giá (đ)</label>
               <InputNumber size="small" id="price" class="w-full" />
               <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
                 {{ $field.error?.message }}
@@ -1261,12 +1258,12 @@ onBeforeUnmount(() => {
               name="description"
               class="col-span-2 row-span-2 flex flex-col"
             >
-              <label for="description" class="font-semibold mb-1">Description</label>
+              <label for="description" class="font-semibold mb-1">Mô tả</label>
               <Textarea
                 size="small"
                 id="description"
                 class="w-full"
-                placeholder="Enter book description"
+                placeholder="Nhập mô tả sách"
                 rows="4"
                 :style="{ resize: 'none' }"
               />
@@ -1277,12 +1274,12 @@ onBeforeUnmount(() => {
 
             <!-- Publisher -->
             <FormField v-slot="$field" name="publisher" class="flex flex-col">
-              <label for="publisher" class="font-semibold mb-1">Publisher</label>
+              <label for="publisher" class="font-semibold mb-1">Nhà xuất bản</label>
               <Select
                 id="publisher"
                 size="small"
                 class="w-full"
-                placeholder="Select a publisher"
+                placeholder="Chọn nhà xuất bản"
                 :options="publishers"
                 optionLabel="name"
                 optionValue="_id"
@@ -1293,21 +1290,21 @@ onBeforeUnmount(() => {
             </FormField>
 
             <FormField v-slot="$field" name="author" class="flex flex-col">
-              <label for="author" class="font-semibold mb-1">Author</label>
-              <InputText id="author" size="small" class="w-full" placeholder="Select an author" />
+              <label for="author" class="font-semibold mb-1">Tác giả</label>
+              <InputText id="author" size="small" class="w-full" placeholder="Chọn tác giả" />
               <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
                 {{ $field.error?.message }}
               </Message>
             </FormField>
 
-            <!-- Author -->
+            <!-- Genre -->
             <FormField v-slot="$field" name="genre" class="flex flex-col">
-              <label for="genre" class="font-semibold mb-1">Genre</label>
+              <label for="genre" class="font-semibold mb-1">Thể loại</label>
               <Select
                 id="genre"
                 size="small"
                 class="w-full"
-                placeholder="Select a Genre"
+                placeholder="Chọn thể loại"
                 :options="BOOK_GENRES"
               />
               <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
@@ -1318,7 +1315,7 @@ onBeforeUnmount(() => {
             <div class="flex flex-row gap-2">
               <!-- Quantity -->
               <FormField v-slot="$field" name="quantity" class="flex-2 flex flex-col">
-                <label for="quantity" class="font-semibold mb-1">Quantity</label>
+                <label for="quantity" class="font-semibold mb-1">Số lượng</label>
                 <InputNumber
                   id="quantity"
                   mode="decimal"
@@ -1335,7 +1332,7 @@ onBeforeUnmount(() => {
 
               <!-- Published Date -->
               <FormField v-slot="$field" name="publishedDate" class="flex-3 flex flex-col">
-                <label for="publishedDate" class="font-semibold mb-1">Published Date</label>
+                <label for="publishedDate" class="font-semibold mb-1">Ngày xuất bản</label>
                 <DatePicker
                   size="small"
                   id="publishedDate"
@@ -1358,7 +1355,7 @@ onBeforeUnmount(() => {
       <div class="flex justify-end gap-2">
         <Button
           type="button"
-          label="Cancel"
+          label="Hủy"
           severity="secondary"
           @click="addBookVisible = false"
           :disabled="isSubmitting"
@@ -1366,7 +1363,7 @@ onBeforeUnmount(() => {
         <Button
           @click="!isSubmitting && formRef?.submit()"
           type="button"
-          label="Add Book"
+          label="Cập nhật sách"
           :class="`bg-(--my-secondary-color)! text-white! border-none! ${!isSubmitting ? 'hover:opacity-85!' : ''}`"
           :loading="isSubmitting"
           :disabled="isSubmitting"
@@ -1381,7 +1378,6 @@ onBeforeUnmount(() => {
 :deep(.p-paginator-page-selected) {
   background-color: var(--my-secondary-color) !important;
   color: white !important;
-  /* border: 1px solid var(--my-secondary-color) !important; */
 }
 
 .skeleton {

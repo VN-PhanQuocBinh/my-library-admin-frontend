@@ -1,3 +1,26 @@
+<style scoped>
+:deep(.p-tabview-nav) {
+  border: none;
+  background-color: var(--my-secondary-color) !important;
+}
+
+/* :deep(.p-tablist-tab-list) {
+  border: none !important;
+} */
+
+:deep(.p-tab) {
+  color: var(--my-text-secondary-color) !important;
+}
+
+:deep(.p-tab-active) {
+  color: var(--my-text-primary-color) !important;
+}
+
+:deep(.p-tablist-active-bar) {
+  background-color: var(--my-secondary-color) !important;
+}
+</style>
+
 <script setup lang="ts">
 import { ref } from 'vue'
 import Tabs from 'primevue/tabs'
@@ -15,11 +38,11 @@ const activeIndex = ref(0)
 <template>
   <Toast position="bottom-right" />
 
-  <div class="p-4">
+  <div>
     <Tabs :value="'admin'">
       <TabList class="mb-4 border-b border-gray-300">
-        <Tab :value="'admin'">Admin Accounts</Tab>
-        <Tab :value="'reader'">Reader Accounts</Tab>
+        <Tab :value="'admin'">Tài khoản quản trị</Tab>
+        <Tab :value="'reader'">Tài khoản độc giả</Tab>
       </TabList>
 
       <TabPanels>

@@ -7,20 +7,20 @@
    --my-text-secondary-color: #bdbdbd;
 }
 
-.custome-scrollbar {
+.custom-scrollbar {
    scrollbar-width: thin;
    scrollbar-color: #a0aec0 #edf2f7;
 }
 
-.custome-scrollbar::-webkit-scrollbar {
+.custom-scrollbar::-webkit-scrollbar {
    width: 8px;
    appearance: none;
 }
-.custome-scrollbar::-webkit-scrollbar-track {
+.custom-scrollbar::-webkit-scrollbar-track {
    background: #edf2f7;
    appearance: none;
 }
-.custome-scrollbar::-webkit-scrollbar-thumb {
+.custom-scrollbar::-webkit-scrollbar-thumb {
    background-color: #a0aec0;
    border-radius: 4px;
    border: 2px solid #edf2f7;
@@ -51,3 +51,4 @@ h5,
 h6 {
    margin: 0;
 }
+

@@ -47,8 +47,6 @@ const AdminSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters long').optional(),
 })
 
-
-
 type AdminFormType = z.infer<typeof AdminSchema>
 
 // State
@@ -66,18 +64,18 @@ const selectedDuty = ref<string | null>(null)
 const [debouncedSearchQuery, setDebouncedSearchQuery] = useDebounce('', 300)
 
 const statusOptions = [
-  { label: 'Active', value: 'active' },
-  { label: 'Inactive', value: 'inactive' },
+  { label: 'Kích hoạt', value: 'active' },
+  { label: 'Vô hiệu hóa', value: 'inactive' },
 ]
 
 const dutyOptions = [
-  { label: 'Staff', value: 'staff' },
-  { label: 'Manager', value: 'manager' },
+  { label: 'Nhân viên', value: 'staff' },
+  { label: 'Quản lý', value: 'manager' },
 ]
 
 const dutyFormOptions = [
-  { label: 'Staff', value: 'staff' },
-  { label: 'Manager', value: 'manager' },
+  { label: 'Nhân viên', value: 'staff' },
+  { label: 'Quản lý', value: 'manager' },
 ]
 
 // Action menu
@@ -129,11 +127,10 @@ const fetchAdmins = async (page = 0, limit = 10) => {
       totalPages: _pagination.totalPages,
     }
   } catch (error) {
-    console.error('Error fetching admins:', error)
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: 'Failed to fetch admins',
+      detail: 'Không thể lấy danh sách quản trị viên',
       life: 3000,
     })
   } finally {
@@ -154,7 +151,7 @@ const handleCreateAdmin = async (data: CreateAdminPayload) => {
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Admin created successfully',
+      detail: 'Tạo quản trị viên thành công',
       life: 3000,
     })
     await fetchAdmins()
@@ -163,7 +160,7 @@ const handleCreateAdmin = async (data: CreateAdminPayload) => {
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: error?.response?.data?.message || 'Failed to create admin',
+      detail: error?.response?.data?.message || 'Tạo quản trị viên thất bại',
       life: 3000,
     })
   } finally {
@@ -175,13 +172,13 @@ const handleEditAdmin = async (data: AdminFormType) => {
   try {
     isSubmitting.value = true
     const adminId = selectedAdmin.value?._id || ''
-    if (!adminId) throw new Error('Admin ID is missing')
+    if (!adminId) throw new Error('Thiếu ID quản trị viên')
 
     await updateAdmin(adminId, data)
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Admin updated successfully',
+      detail: 'Cập nhật quản trị viên thành công',
       life: 3000,
     })
     await fetchAdmins()
@@ -189,7 +186,7 @@ const handleEditAdmin = async (data: AdminFormType) => {
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: 'Failed to update admin',
+      detail: 'Cập nhật quản trị viên thất bại',
       life: 3000,
     })
   } finally {
@@ -205,7 +202,7 @@ const handleUpdateStatus = async (status: string) => {
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Admin status updated successfully',
+      detail: 'Cập nhật trạng thái quản trị viên thành công',
       life: 3000,
     })
     await fetchAdmins()
@@ -213,7 +210,7 @@ const handleUpdateStatus = async (status: string) => {
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: 'Failed to update admin status',
+      detail: 'Cập nhật trạng thái quản trị viên thất bại',
       life: 3000,
     })
   } finally {
@@ -231,7 +228,7 @@ const handleSubmit = async (event: any) => {
     toast.add({
       severity: 'error',
       summary: 'Validation Error',
-      detail: 'Please correct the errors in the form.',
+      detail: 'Vui lòng sửa các lỗi trong biểu mẫu.',
       life: 3000,
     })
   }
@@ -246,7 +243,7 @@ const handleEditSubmit = async (event: any) => {
     toast.add({
       severity: 'error',
       summary: 'Validation Error',
-      detail: 'Please correct the errors in the form.',
+      detail: 'Vui lòng sửa các lỗi trong biểu mẫu.',
       life: 3000,
     })
   }
@@ -312,7 +309,7 @@ onMounted(() => {
     dataKey="_id"
   >
     <template #empty>
-      <div class="text-(--my-text-secondary-color) text-center">No admins found.</div>
+      <div class="text-(--my-text-secondary-color) text-center">Không có quản trị viên nào.</div>
     </template>
 
     <template #header>
@@ -323,7 +320,7 @@ onMounted(() => {
             :options="statusOptions"
             optionLabel="label"
             optionValue="value"
-            placeholder="Filter by status"
+            placeholder="Lọc theo trạng thái"
             class="w-48"
             showClear
           />
@@ -333,7 +330,7 @@ onMounted(() => {
             :options="dutyOptions"
             optionLabel="label"
             optionValue="value"
-            placeholder="Filter by duty"
+            placeholder="Lọc theo chức vụ"
             class="w-48"
             showClear
           />
@@ -344,14 +341,14 @@ onMounted(() => {
             <InputIcon class="pi pi-search" />
             <InputText
               v-model="searchQuery"
-              placeholder="Search by name or email..."
+              placeholder="Tìm kiếm theo tên hoặc email..."
               class="w-full focus:border-(--my-primary-color)!"
             />
           </IconField>
           <Button
             @click="addAdminVisible = true"
             icon="pi pi-plus"
-            label="Add Admin"
+            label="Thêm quản trị viên"
             class="bg-(--my-primary-color)! border-none! hover:opacity-85! text-(--my-secondary-color)!"
           />
         </div>
@@ -360,7 +357,7 @@ onMounted(() => {
 
     <Column expander style="width: 3rem" />
 
-    <Column field="fullname" header="Full Name">
+    <Column field="fullname" header="Tên đầy đủ">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-32"></div>
         <span v-else>{{ slotProps.data.fullname }}</span>
@@ -374,14 +371,14 @@ onMounted(() => {
       </template>
     </Column>
 
-    <Column field="address" header="Address">
+    <Column field="address" header="Địa chỉ">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-32"></div>
         <span v-else>{{ slotProps.data.address }}</span>
       </template>
     </Column>
 
-    <Column field="duty" header="Duty">
+    <Column field="duty" header="Chức vụ">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-16"></div>
         <Tag
@@ -393,7 +390,7 @@ onMounted(() => {
       </template>
     </Column>
 
-    <Column field="status" header="Status">
+    <Column field="status" header="Trạng thái">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-16"></div>
         <Tag
@@ -405,7 +402,7 @@ onMounted(() => {
       </template>
     </Column>
 
-    <Column header="Actions" style="width: 8rem">
+    <Column header="Hành động" style="width: 8rem">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
         <div v-else class="flex gap-2">
@@ -447,7 +444,7 @@ onMounted(() => {
         <div class="flex-1 grid grid-cols-3 gap-4">
           <!-- Gender -->
           <div class="flex flex-col gap-1">
-            <span class="font-semibold">Duty:</span>
+            <span class="font-semibold">Chức vụ:</span>
             <Tag
               class="w-max"
               :value="slotProps.data.duty"
@@ -457,13 +454,13 @@ onMounted(() => {
 
           <!-- Status -->
           <div class="flex flex-col gap-1">
-            <span class="font-semibold">Status:</span>
+            <span class="font-semibold">Trạng thái:</span>
             <Tag size="small" class="w-max">{{ slotProps.data.status }}</Tag>
           </div>
 
           <!-- Phone -->
           <div class="flex flex-col gap-1">
-            <span class="font-semibold">Phone:</span>
+            <span class="font-semibold">Số điện thoại:</span>
             <div class="flex items-center gap-2">
               <span
                 class="flex-1 rounded-[6px] bg-gray-100 text-(--my-text-primary-color) px-2 py-1"
@@ -481,7 +478,7 @@ onMounted(() => {
 
           <!-- Address  -->
           <div class="flex flex-col gap-1">
-            <span class="font-semibold">Address:</span>
+            <span class="font-semibold">Địa chỉ:</span>
             <div class="flex items-center gap-2">
               <span
                 class="flex-1 rounded-[6px] bg-gray-100 text-(--my-text-primary-color) px-2 py-1"
@@ -498,11 +495,11 @@ onMounted(() => {
           </div>
 
           <div class="flex flex-col gap-1 text-(--my-text-primary-color)">
-            <span class="font-semibold">Created:</span>
+            <span class="font-semibold">Ngày tạo:</span>
             <span>{{ new Date(slotProps.data.createdAt).toLocaleDateString() }}</span>
           </div>
           <div class="flex flex-col gap-1 text-(--my-text-primary-color)">
-            <span class="font-semibold">Updated:</span>
+            <span class="font-semibold">Ngày cập nhật:</span>
             <span>{{ new Date(slotProps.data.updatedAt).toLocaleDateString() }}</span>
           </div>
         </div>
@@ -510,9 +507,9 @@ onMounted(() => {
     </template>
 
     <template #footer>
-      Showing {{ pagination.page * pagination.limit + 1 }} to
+      Hiển thị {{ pagination.page * pagination.limit + 1 }} đến
       {{ Math.min((pagination.page + 1) * pagination.limit, pagination.total) }}
-      of {{ pagination.total }} admins.
+      trên {{ pagination.total }} quản trị viên.
     </template>
   </DataTable>
 
@@ -525,7 +522,7 @@ onMounted(() => {
         class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
       >
         <i class="pi pi-check"></i>
-        <span>Activate</span>
+        <span>Kích hoạt</span>
       </button>
 
       <button
@@ -534,7 +531,7 @@ onMounted(() => {
         class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
       >
         <i class="pi pi-times"></i>
-        <span>Deactivate</span>
+        <span>Vô hiệu hóa</span>
       </button>
     </div>
   </Popover>
@@ -544,7 +541,7 @@ onMounted(() => {
     v-model:visible="addAdminVisible"
     modal
     :draggable="false"
-    header="Add Admin"
+    header="Thêm quản trị viên"
     :style="{ minWidth: '35rem' }"
   >
     <Form
@@ -556,8 +553,8 @@ onMounted(() => {
       class="w-full flex flex-col gap-4"
     >
       <FormField v-slot="$field" name="fullname" class="flex flex-col">
-        <label class="font-semibold mb-2">Full Name</label>
-        <InputText size="small" class="w-full" placeholder="Enter full name" />
+        <label class="font-semibold mb-2">Tên đầy đủ</label>
+        <InputText size="small" class="w-full" placeholder="Nhập tên đầy đủ" />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
@@ -566,14 +563,14 @@ onMounted(() => {
       <div class="grid grid-cols-2 gap-4">
         <FormField v-slot="$field" name="email" class="flex flex-col">
           <label class="font-semibold mb-2">Email</label>
-          <InputText size="small" class="w-full" placeholder="Enter email" />
+          <InputText size="small" class="w-full" placeholder="Nhập email" />
           <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
             {{ $field.error?.message }}
           </Message>
         </FormField>
 
         <FormField v-slot="$field" name="duty" class="flex flex-col">
-          <label class="font-semibold mb-2">Duty</label>
+          <label class="font-semibold mb-2">Chức vụ</label>
           <Select
             size="small"
             v-model="$field.value"
@@ -586,29 +583,29 @@ onMounted(() => {
       </div>
 
       <FormField v-slot="$field" name="phoneNumber" class="flex flex-col">
-        <label class="font-semibold mb-2">Phone Number</label>
-        <InputText size="small" class="w-full" placeholder="Enter phone number" />
+        <label class="font-semibold mb-2">Số điện thoại</label>
+        <InputText size="small" class="w-full" placeholder="Nhập số điện thoại" />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
       </FormField>
 
       <FormField v-slot="$field" name="address" class="flex flex-col">
-        <label class="font-semibold mb-2">Address</label>
-        <InputText size="small" class="w-full" placeholder="Enter address" />
+        <label class="font-semibold mb-2">Địa chỉ</label>
+        <InputText size="small" class="w-full" placeholder="Nhập địa chỉ" />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
       </FormField>
 
       <FormField v-slot="$field" name="password" class="flex flex-col">
-        <label class="font-semibold mb-2">Password</label>
+        <label class="font-semibold mb-2">Mật khẩu</label>
         <Password
           :v-model="$field.value"
           toggleMask
           size="small"
           class="w-full"
-          placeholder="Enter password"
+          placeholder="Nhập mật khẩu"
           :feedback="false"
           fluid
         />
@@ -622,7 +619,7 @@ onMounted(() => {
       <div class="flex justify-end gap-2">
         <Button
           type="button"
-          label="Cancel"
+          label="Hủy"
           severity="secondary"
           @click="addAdminVisible = false"
           :disabled="isSubmitting"
@@ -630,7 +627,7 @@ onMounted(() => {
         <Button
           @click="!isSubmitting && formRef?.submit()"
           type="button"
-          label="Add Admin"
+          label="Thêm quản trị viên"
           :class="`bg-(--my-secondary-color)! text-white! border-none! ${!isSubmitting ? 'hover:opacity-85!' : ''}`"
           :loading="isSubmitting"
           :disabled="isSubmitting"
@@ -644,7 +641,7 @@ onMounted(() => {
     v-model:visible="editAdminVisible"
     modal
     :draggable="false"
-    header="Edit Admin"
+    header="Cập nhật quản trị viên"
     :style="{ minWidth: '35rem' }"
   >
     <Form
@@ -656,8 +653,8 @@ onMounted(() => {
       class="w-full flex flex-col gap-4"
     >
       <FormField v-slot="$field" name="fullname" class="flex flex-col">
-        <label class="font-semibold mb-2">Full Name</label>
-        <InputText size="small" class="w-full" placeholder="Enter full name" />
+        <label class="font-semibold mb-2">Họ và tên</label>
+        <InputText size="small" class="w-full" placeholder="Nhập họ và tên" />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
@@ -665,7 +662,7 @@ onMounted(() => {
 
       <div class="grid grid-cols-2 gap-4">
         <FormField v-slot="$field" name="duty" class="flex flex-col">
-          <label class="font-semibold mb-2">Duty</label>
+          <label class="font-semibold mb-2">Chức vụ</label>
           <Select
             v-model="$field.value"
             size="small"
@@ -677,7 +674,7 @@ onMounted(() => {
         </FormField>
 
         <FormField v-slot="$field" name="phoneNumber" class="flex flex-col">
-          <label class="font-semibold mb-2">Phone Number</label>
+          <label class="font-semibold mb-2">Số điện thoại</label>
           <InputText size="small" class="w-full" placeholder="Enter phone number" />
           <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
             {{ $field.error?.message }}
@@ -686,8 +683,8 @@ onMounted(() => {
       </div>
 
       <FormField v-slot="$field" name="address" class="flex flex-col">
-        <label class="font-semibold mb-2">Address</label>
-        <InputText size="small" class="w-full" placeholder="Enter address" />
+        <label class="font-semibold mb-2">Địa chỉ</label>
+        <InputText size="small" class="w-full" placeholder="Nhập địa chỉ" />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
@@ -698,7 +695,7 @@ onMounted(() => {
       <div class="flex justify-end gap-2">
         <Button
           type="button"
-          label="Cancel"
+          label="Hủy"
           severity="secondary"
           @click="editAdminVisible = false"
           :disabled="isSubmitting"
@@ -706,7 +703,7 @@ onMounted(() => {
         <Button
           @click="!isSubmitting && formRef?.submit()"
           type="button"
-          label="Save Changes"
+          label="Lưu thay đổi"
           :class="`bg-(--my-secondary-color)! text-white! border-none! ${!isSubmitting ? 'hover:opacity-85!' : ''}`"
           :loading="isSubmitting"
           :disabled="isSubmitting"

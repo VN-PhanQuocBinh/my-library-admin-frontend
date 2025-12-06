@@ -1,0 +1,57 @@
+/* DataTable Header Styles */
+.p-datatable-thead > tr > th:first-child {
+  border-top-left-radius: 8px !important;
+  border-bottom-left-radius: 8px !important;
+}
+
+.p-datatable-thead > tr > th:last-child {
+  border-top-right-radius: 8px !important;
+  border-bottom-right-radius: 8px !important;
+}
+
+.p-datatable-thead > tr > th {
+  background-color: var(--my-secondary-color) !important;
+  color: white !important;
+  font-weight: 600 !important;
+  padding: 12px 16px !important;
+  border: none !important;
+  text-align: left !important;
+}
+
+.p-datatable-thead > tr > th.p-sortable-column {
+  cursor: pointer !important;
+}
+
+.p-datatable-thead > tr > th .p-sortable-column-icon {
+  color: white !important;
+}
+
+.p-datatable-thead > tr > th .p-checkbox {
+  border-color: white !important;
+}
+
+/* DataTable Pagination */
+.p-paginator-page-selected {
+  background-color: var(--my-secondary-color) !important;
+  color: white !important;
+}
+
+/* DataTable Body */
+.p-datatable-tbody > tr:hover {
+  background-color: rgba(var(--my-secondary-color-rgb), 0.1) !important;
+}
+
+/* DataTable Empty State */
+.p-datatable-empty-message {
+  text-align: center !important;
+  color: var(--my-text-secondary-color) !important;
+  padding: 2rem !important;
+}
+
+.p-datatable-paginator-bottom {
+  border: none !important;
+}
+
+.p-datatable-footer {
+  border: none !important;
+}

@@ -69,15 +69,15 @@ const selectedGender = ref<string | null>(null) // Added gender filter
 const [debouncedSearchQuery, setDebouncedSearchQuery] = useDebounce('', 300)
 
 const statusOptions = [
-  { label: 'Active', value: 'active' },
-  { label: 'Inactive', value: 'inactive' },
-  { label: 'Banned', value: 'banned' },
+  { label: 'Hoạt động', value: 'active' },
+  { label: 'Không hoạt động', value: 'inactive' },
+  { label: 'Bị cấm', value: 'banned' },
 ]
 
 const genderOptions = [
-  { label: 'Male', value: 'male' },
-  { label: 'Female', value: 'female' },
-  { label: 'Other', value: 'other' },
+  { label: 'Nam', value: 'male' },
+  { label: 'Nữ', value: 'female' },
+  { label: 'Khác', value: 'other' },
 ]
 
 // Action menu
@@ -128,11 +128,10 @@ const fetchUsers = async (page = 0, limit = 10) => {
       totalPages: _pagination.totalPages,
     }
   } catch (error) {
-    console.error('Error fetching readers:', error)
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: 'Failed to fetch readers',
+      detail: 'Không thể lấy danh sách độc giả',
       life: 3000,
     })
   } finally {
@@ -153,7 +152,7 @@ const handleCreateReader = async (data: CreateUserPayload) => {
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Reader created successfully',
+      detail: 'Tạo độc giả thành công',
       life: 3000,
     })
     await fetchUsers()
@@ -163,7 +162,7 @@ const handleCreateReader = async (data: CreateUserPayload) => {
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: error?.response?.data?.message || 'Failed to create reader',
+      detail: error?.response?.data?.message || 'Tạo độc giả thất bại',
       life: 3000,
     })
   } finally {
@@ -175,12 +174,12 @@ const handleEditReader = async (data: ReaderFormType) => {
   try {
     isSubmitting.value = true
     const userId = selectedReader.value?._id || ''
-    if (!userId) throw new Error('User ID is missing')
+    if (!userId) throw new Error('Thiếu ID người dùng')
     await updateUser(userId, data)
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Reader updated successfully',
+      detail: 'Cập nhật độc giả thành công',
       life: 3000,
     })
     await fetchUsers()
@@ -188,7 +187,7 @@ const handleEditReader = async (data: ReaderFormType) => {
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: 'Failed to update reader',
+      detail: 'Cập nhật độc giả thất bại',
       life: 3000,
     })
   } finally {
@@ -198,8 +197,6 @@ const handleEditReader = async (data: ReaderFormType) => {
 }
 
 const handleUpdateStatus = async (status: string) => {
-  console.log('Updating status to:', status)
-
   try {
     isSubmitting.value = true
     const userId = selectedReader.value?._id || ''
@@ -209,7 +206,7 @@ const handleUpdateStatus = async (status: string) => {
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Reader status updated successfully',
+      detail: 'Cập nhật trạng thái độc giả thành công',
       life: 3000,
     })
     await fetchUsers()
@@ -217,7 +214,7 @@ const handleUpdateStatus = async (status: string) => {
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: 'Failed to update reader status',
+      detail: 'Cập nhật trạng thái độc giả thất bại',
       life: 3000,
     })
   } finally {
@@ -236,7 +233,7 @@ const handleSubmit = async (event: any) => {
     toast.add({
       severity: 'error',
       summary: 'Validation Error',
-      detail: 'Please correct the errors in the form.',
+      detail: 'Vui lòng sửa các lỗi trong biểu mẫu.',
       life: 3000,
     })
   }
@@ -252,7 +249,7 @@ const handleEditSubmit = async (event: any) => {
     toast.add({
       severity: 'error',
       summary: 'Validation Error',
-      detail: 'Please correct the errors in the form.',
+      detail: 'Vui lòng sửa các lỗi trong biểu mẫu.',
       life: 3000,
     })
   }
@@ -328,7 +325,7 @@ onMounted(() => {
     dataKey="_id"
   >
     <template #empty>
-      <div class="text-(--my-text-secondary-color) text-center">No readers found.</div>
+      <div class="text-(--my-text-secondary-color) text-center">Không có độc giả nào.</div>
     </template>
 
     <template #header>
@@ -340,7 +337,7 @@ onMounted(() => {
             :options="statusOptions"
             optionLabel="label"
             optionValue="value"
-            placeholder="Filter by status"
+            placeholder="Lọc theo trạng thái"
             class="w-48"
             showClear
           />
@@ -351,14 +348,14 @@ onMounted(() => {
             <InputIcon class="pi pi-search" />
             <InputText
               v-model="searchQuery"
-              placeholder="Search by name or email..."
+              placeholder="Tìm kiếm theo tên hoặc email..."
               class="w-full focus:border-(--my-primary-color)!"
             />
           </IconField>
           <Button
             @click="addReaderVisible = true"
             icon="pi pi-plus"
-            label="Add Reader"
+            label="Thêm độc giả"
             class="bg-(--my-primary-color)! border-none! hover:opacity-85! text-(--my-secondary-color)!"
           />
         </div>
@@ -367,7 +364,7 @@ onMounted(() => {
 
     <Column expander style="width: 3rem" />
 
-    <Column field="fullname" header="Full Name">
+    <Column field="fullname" header="Họ và tên">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-32"></div>
         <span v-else>{{ slotProps.data.firstname }} {{ slotProps.data.lastname }}</span>
@@ -381,14 +378,14 @@ onMounted(() => {
       </template>
     </Column>
 
-    <Column field="dateOfBirth" header="Date of Birth">
+    <Column field="dateOfBirth" header="Ngày sinh">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
         <span v-else>{{ new Date(slotProps.data.dateOfBirth).toLocaleDateString() }}</span>
       </template>
     </Column>
 
-    <Column field="address" header="Address">
+    <Column field="address" header="Địa chỉ">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-32"></div>
         <span v-else>{{ slotProps.data.address }}</span>
@@ -396,7 +393,7 @@ onMounted(() => {
     </Column>
 
     <!-- Added Gender column -->
-    <Column field="gender" header="Gender">
+    <Column field="gender" header="Giới tính">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-16"></div>
         <Tag
@@ -408,7 +405,7 @@ onMounted(() => {
       </template>
     </Column>
 
-    <Column field="status" header="Status">
+    <Column field="status" header="Trạng thái">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-16"></div>
         <Tag
@@ -420,7 +417,7 @@ onMounted(() => {
       </template>
     </Column>
 
-    <Column header="Actions" style="width: 8rem">
+    <Column header="Hành động" style="width: 8rem">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
         <div v-else class="flex gap-2">
@@ -468,7 +465,7 @@ onMounted(() => {
         <div class="flex-1 grid grid-cols-3 gap-4">
           <!-- Gender -->
           <div class="flex flex-col gap-1">
-            <span class="font-semibold">Gender:</span>
+            <span class="font-semibold">Giới tính:</span>
             <Tag
               class="w-max"
               :value="slotProps.data.gender"
@@ -478,7 +475,7 @@ onMounted(() => {
 
           <!-- Status -->
           <div class="flex flex-col gap-1">
-            <span class="font-semibold">Status:</span>
+            <span class="font-semibold">Trạng thái:</span>
             <Tag
               class="w-max"
               :value="slotProps.data.status"
@@ -488,7 +485,7 @@ onMounted(() => {
 
           <!-- Phone -->
           <div class="flex flex-col gap-1">
-            <span class="font-semibold">Phone:</span>
+            <span class="font-semibold">Số điện thoại:</span>
             <div class="flex items-center gap-2">
               <span
                 class="flex-1 rounded-[6px] bg-gray-100 text-(--my-text-primary-color) px-2 py-1"
@@ -506,7 +503,7 @@ onMounted(() => {
 
           <!-- Date of Birth -->
           <div class="flex flex-col gap-1">
-            <span class="font-semibold">Date of Birth:</span>
+            <span class="font-semibold">Ngày sinh:</span>
             <span class="rounded-[6px] bg-gray-100 text-(--my-text-primary-color) px-2 py-1">{{
               new Date(slotProps.data.dateOfBirth).toLocaleDateString()
             }}</span>
@@ -514,7 +511,7 @@ onMounted(() => {
 
           <!-- Address -->
           <div class="flex flex-col gap-1">
-            <span class="font-semibold">Address:</span>
+            <span class="font-semibold">Địa chỉ:</span>
             <div class="flex items-center gap-2">
               <span
                 class="flex-1 rounded-[6px] bg-gray-100 text-(--my-text-primary-color) px-2 py-1"
@@ -531,11 +528,11 @@ onMounted(() => {
           </div>
 
           <div class="flex flex-col gap-1 text-(--my-text-primary-color)">
-            <span class="font-semibold">Created:</span>
+            <span class="font-semibold">Ngày tạo:</span>
             <span>{{ new Date(slotProps.data.createdAt).toLocaleDateString() }}</span>
           </div>
           <div class="flex flex-col gap-1 text-(--my-text-primary-color)">
-            <span class="font-semibold">Updated:</span>
+            <span class="font-semibold">Cập nhật:</span>
             <span>{{ new Date(slotProps.data.updatedAt).toLocaleDateString() }}</span>
           </div>
         </div>
@@ -543,9 +540,9 @@ onMounted(() => {
     </template>
 
     <template #footer>
-      Showing {{ pagination.page * pagination.limit + 1 }} to
+      Hiển thị {{ pagination.page * pagination.limit + 1 }} đến
       {{ Math.min((pagination.page + 1) * pagination.limit, pagination.total) }}
-      of {{ pagination.total }} readers.
+      trong tổng số {{ pagination.total }} độc giả.
     </template>
   </DataTable>
 
@@ -558,7 +555,7 @@ onMounted(() => {
         class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
       >
         <i class="pi pi-check"></i>
-        <span>Activate</span>
+        <span>Kích hoạt</span>
       </button>
 
       <button
@@ -567,7 +564,7 @@ onMounted(() => {
         class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
       >
         <i class="pi pi-times"></i>
-        <span>Deactivate</span>
+        <span>Vô hiệu hóa</span>
       </button>
 
       <button
@@ -576,7 +573,7 @@ onMounted(() => {
         class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-red-500 hover:text-white transition-all duration-200"
       >
         <i class="pi pi-ban"></i>
-        <span>Ban</span>
+        <span>Cấm</span>
       </button>
 
       <button
@@ -585,7 +582,7 @@ onMounted(() => {
         class="flex flex-row items-center gap-2.5 px-3 py-2 rounded-md hover:bg-(--my-secondary-color) hover:text-white transition-all duration-200"
       >
         <i class="pi pi-check"></i>
-        <span>Unban</span>
+        <span>Bỏ cấm</span>
       </button>
     </div>
   </Popover>
@@ -595,7 +592,7 @@ onMounted(() => {
     v-model:visible="addReaderVisible"
     modal
     :draggable="false"
-    header="Add Reader"
+    header="Thêm độc giả"
     :style="{ minWidth: '40rem' }"
   >
     <Form
@@ -608,16 +605,16 @@ onMounted(() => {
     >
       <div class="grid grid-cols-2 gap-4">
         <FormField v-slot="$field" name="firstname" class="flex flex-col">
-          <label class="font-semibold mb-2">First Name</label>
-          <InputText size="small" class="w-full" placeholder="Enter first name" />
+          <label class="font-semibold mb-2">Tên</label>
+          <InputText size="small" class="w-full" placeholder="Nhập tên" />
           <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
             {{ $field.error?.message }}
           </Message>
         </FormField>
 
         <FormField v-slot="$field" name="lastname" class="flex flex-col">
-          <label class="font-semibold mb-2">Last Name</label>
-          <InputText size="small" class="w-full" placeholder="Enter last name" />
+          <label class="font-semibold mb-2">Họ</label>
+          <InputText size="small" class="w-full" placeholder="Nhập họ" />
           <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
             {{ $field.error?.message }}
           </Message>
@@ -626,7 +623,7 @@ onMounted(() => {
 
       <div class="grid grid-cols-2 gap-4">
         <FormField v-slot="$field" name="gender" class="flex flex-col">
-          <label class="font-semibold mb-2">Gender</label>
+          <label class="font-semibold mb-2">Giới tính</label>
           <Select
             v-model="$field.value"
             size="small"
@@ -638,38 +635,38 @@ onMounted(() => {
         </FormField>
 
         <FormField v-slot="$field" name="dateOfBirth" class="flex flex-col">
-          <label class="font-semibold mb-2">Date of Birth</label>
+          <label class="font-semibold mb-2">Ngày sinh</label>
           <DatePicker v-model="$field.value" dateFormat="mm/dd/yy" size="small" class="w-full" />
         </FormField>
       </div>
 
       <FormField v-slot="$field" name="email" class="flex flex-col">
         <label class="font-semibold mb-2">Email</label>
-        <InputText size="small" class="w-full" placeholder="Enter email" />
+        <InputText size="small" class="w-full" placeholder="Nhập email" />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
       </FormField>
 
       <FormField v-slot="$field" name="phoneNumber" class="flex flex-col">
-        <label class="font-semibold mb-2">Phone Number</label>
-        <InputText size="small" class="w-full" placeholder="Enter phone number" />
+        <label class="font-semibold mb-2">Số điện thoại</label>
+        <InputText size="small" class="w-full" placeholder="Nhập số điện thoại" />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
       </FormField>
 
       <FormField v-slot="$field" name="address" class="flex flex-col">
-        <label class="font-semibold mb-2">Address</label>
-        <InputText size="small" class="w-full" placeholder="Enter address" />
+        <label class="font-semibold mb-2">Địa chỉ</label>
+        <InputText size="small" class="w-full" placeholder="Nhập địa chỉ" />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
       </FormField>
 
       <FormField v-slot="$field" name="password" class="flex flex-col">
-        <label class="font-semibold mb-2">Password</label>
-        <Password size="small" class="w-full" placeholder="Enter password" :feedback="false" toggleMask fluid />
+        <label class="font-semibold mb-2">Mật khẩu</label>
+        <Password size="small" class="w-full" placeholder="Nhập mật khẩu" :feedback="false" toggleMask fluid />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
@@ -680,7 +677,7 @@ onMounted(() => {
       <div class="flex justify-end gap-2">
         <Button
           type="button"
-          label="Cancel"
+          label="Hủy"
           severity="secondary"
           @click="addReaderVisible = false"
           :disabled="isSubmitting"
@@ -688,7 +685,7 @@ onMounted(() => {
         <Button
           @click="!isSubmitting && formRef?.submit()"
           type="button"
-          label="Add Reader"
+          label="Thêm độc giả"
           :class="`bg-(--my-secondary-color)! text-white! border-none! ${!isSubmitting ? 'hover:opacity-85!' : ''}`"
           :loading="isSubmitting"
           :disabled="isSubmitting"
@@ -702,7 +699,7 @@ onMounted(() => {
     v-model:visible="editReaderVisible"
     modal
     :draggable="false"
-    header="Edit Reader"
+    header="Chỉnh sửa độc giả"
     :style="{ minWidth: '40rem' }"
   >
     <Form
@@ -716,16 +713,16 @@ onMounted(() => {
       <!-- Same form fields as Add Reader but excluding email -->
       <div class="grid grid-cols-2 gap-4">
         <FormField v-slot="$field" name="firstname" class="flex flex-col">
-          <label class="font-semibold mb-2">First Name</label>
-          <InputText size="small" class="w-full" placeholder="Enter first name" />
+          <label class="font-semibold mb-2">Tên</label>
+          <InputText size="small" class="w-full" placeholder="Nhập tên" />
           <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
             {{ $field.error?.message }}
           </Message>
         </FormField>
 
         <FormField v-slot="$field" name="lastname" class="flex flex-col">
-          <label class="font-semibold mb-2">Last Name</label>
-          <InputText size="small" class="w-full" placeholder="Enter last name" />
+          <label class="font-semibold mb-2">Họ</label>
+          <InputText size="small" class="w-full" placeholder="Nhập họ" />
           <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
             {{ $field.error?.message }}
           </Message>
@@ -734,7 +731,7 @@ onMounted(() => {
 
       <div class="grid grid-cols-2 gap-4">
         <FormField v-slot="$field" name="gender" class="flex flex-col">
-          <label class="font-semibold mb-2">Gender</label>
+          <label class="font-semibold mb-2">Giới tính</label>
           <Select
             v-model="$field.value"
             size="small"
@@ -746,7 +743,7 @@ onMounted(() => {
         </FormField>
 
         <FormField v-slot="$field" name="dateOfBirth" class="flex flex-col">
-          <label class="font-semibold mb-2">Date of Birth</label>
+          <label class="font-semibold mb-2">Ngày sinh</label>
           <DatePicker
             v-model="$field.value"
             size="small"
@@ -758,16 +755,16 @@ onMounted(() => {
       </div>
 
       <FormField v-slot="$field" name="phoneNumber" class="flex flex-col">
-        <label class="font-semibold mb-2">Phone Number</label>
-        <InputText size="small" class="w-full" placeholder="Enter phone number" />
+        <label class="font-semibold mb-2">Số điện thoại</label>
+        <InputText size="small" class="w-full" placeholder="Nhập số điện thoại" />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
       </FormField>
 
       <FormField v-slot="$field" name="address" class="flex flex-col">
-        <label class="font-semibold mb-2">Address</label>
-        <InputText size="small" class="w-full" placeholder="Enter address" />
+        <label class="font-semibold mb-2">Địa chỉ</label>
+        <InputText size="small" class="w-full" placeholder="Nhập địa chỉ" />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
@@ -778,7 +775,7 @@ onMounted(() => {
       <div class="flex justify-end gap-2">
         <Button
           type="button"
-          label="Cancel"
+          label="Hủy"
           severity="secondary"
           @click="editReaderVisible = false"
           :disabled="isSubmitting"
@@ -786,7 +783,7 @@ onMounted(() => {
         <Button
           @click="!isSubmitting && formRef?.submit()"
           type="button"
-          label="Save Changes"
+          label="Lưu thay đổi"
           :class="`bg-(--my-secondary-color)! text-white! border-none! ${!isSubmitting ? 'hover:opacity-85!' : ''}`"
           :loading="isSubmitting"
           :disabled="isSubmitting"
