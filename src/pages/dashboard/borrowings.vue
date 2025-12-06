@@ -530,9 +530,9 @@ const calculateDaysBorrowed = (borrowDate: string) => {
           :options="users"
           optionLabel="fullname"
           optionValue="_id"
-          placeholder="Search and select a user"
+          placeholder="Tìm kiếm và chọn người dùng"
           filter
-          filterPlaceholder="Search users..."
+          filterPlaceholder="Tìm kiếm người dùng..."
           class="w-full"
         >
           <template #option="slotProps">
@@ -555,9 +555,9 @@ const calculateDaysBorrowed = (borrowDate: string) => {
           :options="books"
           optionLabel="name"
           optionValue="_id"
-          placeholder="Search and select a book"
+          placeholder="Tìm kiếm và chọn sách"
           filter
-          filterPlaceholder="Search books..."
+          filterPlaceholder="Tìm kiếm sách..."
           class="w-full"
         >
           <template #option="slotProps">
