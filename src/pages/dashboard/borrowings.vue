@@ -154,6 +154,15 @@ const statusOptions = [
   { label: 'Mất', value: 'lost' },
 ]
 
+const actionLabels = {
+  approved: 'Phê duyệt',
+  pending: 'Đang chờ',
+  rejected: 'Từ chối',
+  returned: 'Đã trả',
+  overdue: 'Quá hạn',
+  lost: 'Mất',
+}
+
 // Fetch borrowing registrations from the API
 const fetchBorrowingRegistrations = async (page = 0, limit = 10) => {
   try {
@@ -420,7 +429,7 @@ const calculateDaysBorrowed = (borrowDate: string) => {
     <Column field="borrowDate" header="Ngày mượn">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
-        <span v-else class="text-(--my-text-primary-color)">
+        <span v-else-if="slotProps.data.borrowedAt" class="text-(--my-text-primary-color)">
           {{ new Date(slotProps.data.borrowedAt).toLocaleDateString() }}
         </span>
       </template>
@@ -443,8 +452,8 @@ const calculateDaysBorrowed = (borrowDate: string) => {
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
         <span v-else class="text-(--my-text-primary-color)">
           {{
-            slotProps.data.returnDate
-              ? new Date(slotProps.data.returnDate).toLocaleDateString()
+            slotProps.data.returnedAt
+              ? new Date(slotProps.data.returnedAt).toLocaleDateString()
               : '-'
           }}
         </span>
@@ -623,13 +632,7 @@ const calculateDaysBorrowed = (borrowDate: string) => {
   >
     <div class="text-(--my-text-primary-color) text-center">
       Bạn có chắc chắn muốn
-      {{
-        actionType === 'approved'
-          ? 'Phê duyệt'
-          : actionType === 'rejected'
-            ? 'Từ chối'
-            : 'Đặt lại thành Đang chờ'
-      }}
+      {{ actionLabels[actionType] }}
       đăng ký mượn sách cho
       <span class="font-semibold text-(--my-secondary-color)">
         "{{ selectedRegistration?.bookId?.name }}"
@@ -651,13 +654,7 @@ const calculateDaysBorrowed = (borrowDate: string) => {
         />
         <Button
           type="button"
-          :label="
-            actionType === 'approved'
-              ? 'Phê duyệt'
-              : actionType === 'rejected'
-                ? 'Từ chối'
-                : 'Đặt lại thành Đang chờ'
-          "
+          :label="'Xác nhận'"
           :severity="
             actionType === 'approved' ? 'success' : actionType === 'rejected' ? 'danger' : 'warn'
           "

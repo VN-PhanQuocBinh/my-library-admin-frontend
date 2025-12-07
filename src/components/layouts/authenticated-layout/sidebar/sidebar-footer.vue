@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { defineProps } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
@@ -19,7 +18,7 @@ const { logout } = useAuthStore()
       class="overflow-hidden text-gray-400 p-2 w-full flex flex-row gap-2.5 rounded-md justify-start items-center hover:text-(--my-primary-color) transition-colors duration-300"
     >
       <i class="pi pi-sign-out" style="font-size: 1.5rem;"></i>
-      <span class="text-base">Đăng xuất</span>
+      <span class="text-base line-clamp-1">Đăng xuất</span>
     </button>
   </div>
 </template>
