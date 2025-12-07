@@ -537,13 +537,13 @@ onBeforeUnmount(() => {
           size="small"
           v-model="selectedStatus"
           :options="[
-            { label: 'Active', value: true },
-            { label: 'Inactive', value: false },
+            { label: 'Kích hoạt', value: true },
+            { label: 'Không kích hoạt', value: false },
           ]"
           optionLabel="label"
           optionValue="value"
           showClear
-          placeholder="Filter by Status"
+          placeholder="Lọc theo trạng thái"
           class="w-full md:w-56"
         />
 
@@ -552,7 +552,7 @@ onBeforeUnmount(() => {
           v-model="selectedGenre"
           :options="BOOK_GENRES"
           showClear
-          placeholder="Filter by Genre"
+          placeholder="Lọc theo thể loại"
           class="w-full md:w-56"
         >
           <template #option="slotProps">
@@ -567,7 +567,7 @@ onBeforeUnmount(() => {
           optionLabel="name"
           optionValue="_id"
           showClear
-          placeholder="Filter by Publisher"
+          placeholder="Lọc theo nhà xuất bản"
           class="w-full md:w-56"
         />
       </div>
@@ -590,7 +590,7 @@ onBeforeUnmount(() => {
     <Column field="name" header="Tiêu đề">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
-        <span v-else>{{ slotProps.data.name }}</span>
+        <span v-else class="line-clamp-2">{{ slotProps.data.name }}</span>
       </template>
     </Column>
 
@@ -625,7 +625,7 @@ onBeforeUnmount(() => {
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-24"></div>
         <div v-else>
-          <span>{{ slotProps.data.publisher?.name || 'Không xác định' }}</span>
+          <span class="line-clamp-2">{{ slotProps.data.publisher?.name || 'Không xác định' }}</span>
         </div>
       </template>
     </Column>
@@ -647,7 +647,7 @@ onBeforeUnmount(() => {
           v-if="!isLoadingData"
           :value="slotProps.data.status ? 'Kích hoạt' : 'Vô hiệu hóa'"
           :severity="slotProps.data.status ? 'success' : 'danger'"
-          class="uppercase line-clamp-1"
+          class="uppercase line-clamp-1 min-w-28"
         />
       </template>
     </Column>
