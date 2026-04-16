@@ -2,7 +2,12 @@ import { useRouter } from 'vue-router'
 
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import { login, register, getProfile as _getProfile } from '@/services/auth.service'
+import {
+  login,
+  register,
+  getProfile as _getProfile,
+  logout as _logout,
+} from '@/services/auth.service'
 import type { Admin } from '@/types/admin'
 
 import { type RegisterType } from '@/types/auth-schema'
@@ -84,7 +89,8 @@ export const useAuthStore = defineStore('auth', () => {
     router.push({ name: 'login' })
   }
 
-  function logout() {
+  async function logout() {
+    await _logout()
     clearAuthData()
   }
 
