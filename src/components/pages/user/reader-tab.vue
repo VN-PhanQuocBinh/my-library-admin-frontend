@@ -7,7 +7,7 @@ import {
   InputIcon,
   InputText,
   Button,
-  Select, 
+  Select,
   Dialog,
   Message,
   useToast,
@@ -15,7 +15,7 @@ import {
   Divider,
   Popover,
   DatePicker,
-  Password, 
+  Password,
 } from 'primevue'
 
 import { Form, FormField } from '@primevue/forms'
@@ -25,6 +25,7 @@ import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { useDebounce } from '@/utils/use-debounce'
 import { getAllUsers, createUser, updateUser } from '@/services/user.service'
 import type { UserParams, CreateUserPayload } from '@/services/user.service'
+import { formatVND } from '@/utils/format-currency'
 
 // Types
 interface Reader {
@@ -57,7 +58,7 @@ type ReaderFormType = z.infer<typeof ReaderSchema>
 // State
 const toast = useToast()
 const resolver = zodResolver(ReaderSchema)
-const editResolver = zodResolver(ReaderSchema.omit({ email: true, password: true })) 
+const editResolver = zodResolver(ReaderSchema.omit({ email: true, password: true }))
 
 const readers = ref<Reader[]>([])
 const isLoadingData = ref(false)
@@ -367,7 +368,7 @@ onMounted(() => {
     <Column field="fullname" header="Họ và tên">
       <template #body="slotProps">
         <div v-if="isLoadingData" class="skeleton h-4 rounded w-32"></div>
-        <span v-else>{{ slotProps.data.firstname }} {{ slotProps.data.lastname }}</span>
+        <span v-else>{{ slotProps.data.lastname }} {{ slotProps.data.firstname }}</span>
       </template>
     </Column>
 
@@ -457,6 +458,11 @@ onMounted(() => {
             </h4>
             <span class="text-sm text-gray-400">{{ slotProps.data.email }}</span>
           </div>
+
+          <div class="flex flex-col items-center gap-1 text-(--my-text-primary-color) mt-4">
+            <span class="font-semibold">Số tiền phạt:</span>
+            <span class="text-red-700 text-2xl font-semibold">{{ formatVND(slotProps.data.totalDebt)}} đ</span>
+          </div>
         </div>
 
         <Divider layout="vertical" />
@@ -531,6 +537,7 @@ onMounted(() => {
             <span class="font-semibold">Ngày tạo:</span>
             <span>{{ new Date(slotProps.data.createdAt).toLocaleDateString() }}</span>
           </div>
+
           <div class="flex flex-col gap-1 text-(--my-text-primary-color)">
             <span class="font-semibold">Cập nhật:</span>
             <span>{{ new Date(slotProps.data.updatedAt).toLocaleDateString() }}</span>
@@ -666,7 +673,14 @@ onMounted(() => {
 
       <FormField v-slot="$field" name="password" class="flex flex-col">
         <label class="font-semibold mb-2">Mật khẩu</label>
-        <Password size="small" class="w-full" placeholder="Nhập mật khẩu" :feedback="false" toggleMask fluid />
+        <Password
+          size="small"
+          class="w-full"
+          placeholder="Nhập mật khẩu"
+          :feedback="false"
+          toggleMask
+          fluid
+        />
         <Message v-if="$field.invalid" severity="error" size="small" variant="simple">
           {{ $field.error?.message }}
         </Message>
